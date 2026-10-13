@@ -1,0 +1,2261 @@
+<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KADR na telefon</title>
+<style>
+/* Układ: aplikacja na jeden ekran — u góry sceny, pod nimi stały podgląd z wskaźnikiem ekspozycji,
+   niżej przewijany panel zakładki, na dole pasek nawigacji (jak w aplikacji aparatu). Jeden, ciemny motyw. */
+:root{
+  --bg:#0b0d10; --panel:#12151b; --panel2:#181c23; --panel3:#20252e; --line:#262c36; --line2:#343c48;
+  --text:#e9ecf2; --muted:#8e97a8; --dim:#5f6878;
+  --accent:#f5a524; --accent-d:#b9780f; --ink:#1a1204; --cyan:#4cc3ff; --good:#3ddc97; --warn:#ffcc4d; --bad:#ff6b6b; --rec:#ff3b3b;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,"Segoe UI",system-ui,Roboto,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:dark;
+}
+html{height:100%;box-sizing:border-box;background:var(--bg)}
+*,*:before,*:after{box-sizing:inherit}
+body{height:100%;margin:0;background:var(--bg);color:var(--text);font:14px/1.45 var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;touch-action:manipulation}
+svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.app{height:100%;display:flex;flex-direction:column;max-width:760px;margin:0 auto}
+/* nagłówek */
+.top{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex:none}
+.logo{display:flex;align-items:center;gap:6px;font-weight:700;letter-spacing:.16em;font-size:13px;flex:none}
+.logo svg{width:22px;height:22px;color:var(--accent)}
+.scenes{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0;mask-image:linear-gradient(90deg,#000 88%,transparent)}
+.scenes::-webkit-scrollbar{display:none}
+.scenes button{display:flex;align-items:center;gap:6px;flex:none;border:1px solid var(--line2);background:transparent;border-radius:16px;padding:5px 11px;font-size:12.5px;color:var(--muted);cursor:pointer}
+.scenes button svg{width:14px;height:14px}
+.scenes button.on{background:var(--accent);border-color:var(--accent);color:var(--ink);font-weight:600}
+.ib{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);cursor:pointer;color:var(--text);flex:none}
+.ib.play{background:var(--accent);color:var(--ink);border-color:var(--accent)}
+.ib.on{border-color:var(--accent);color:var(--accent);background:rgba(245,165,36,.12)}
+.tb{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);cursor:pointer;white-space:nowrap}
+.tb.pri{background:var(--accent);color:var(--ink);border-color:var(--accent);font-weight:600}
+.tb.sm{min-height:32px;padding:0 10px;font-size:13px}
+.tb.on{border-color:var(--accent);color:var(--accent)}
+
+/* podgląd */
+.viewer{flex:none;background:#07080a;border-bottom:1px solid var(--line)}
+.stage{position:relative;width:100%;aspect-ratio:16/9;max-height:46vh;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#000}
+.view{position:relative}
+#disp{display:block;width:100%;height:100%;touch-action:manipulation}
+.hud{position:absolute;inset:0;pointer-events:none;font:10px var(--mono);color:#fff;text-shadow:0 1px 2px #000}
+.hud .tl,.hud .tr,.hud .bl,.hud .br{position:absolute;display:flex;gap:6px;align-items:center;padding:2px 6px;background:rgba(0,0,0,.45);border-radius:5px}
+.hud .tl{left:6px;top:6px}.hud .tr{right:6px;top:6px}.hud .bl{left:6px;bottom:6px}.hud .br{right:6px;bottom:6px}
+.hud .bl{display:none}
+.rec{display:inline-flex;align-items:center;gap:4px;color:#ffb3b3}
+.rec:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--rec);animation:blink 1s steps(2) infinite}
+.paused .rec:before{animation:none;background:#888}
+@keyframes blink{50%{opacity:.2}}
+@media (prefers-reduced-motion:reduce){.rec:before{animation:none}}
+.hud .lbl{font:600 11px var(--sans)}
+.hud .ab{position:absolute;bottom:6px;font:700 11px var(--sans);padding:2px 7px;border-radius:5px;background:rgba(0,0,0,.65);max-width:48%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hud .ab.a{left:6px;color:var(--cyan)} .hud .ab.b{right:6px;color:var(--accent)}
+.split{position:absolute;top:0;bottom:0;width:0;border-left:2px solid #fff;pointer-events:auto;cursor:ew-resize;touch-action:none}
+.split:before{content:"";position:absolute;top:0;bottom:0;left:-22px;width:44px}
+.split:after{content:"⟷";position:absolute;top:50%;left:-16px;width:30px;height:30px;margin-top:-15px;border-radius:50%;background:#fff;color:#111;display:grid;place-items:center;font:700 14px var(--sans)}
+.cmpbar{position:absolute;top:6px;left:50%;transform:translateX(-50%);display:flex;gap:4px;align-items:center;background:rgba(18,21,27,.94);border:1px solid var(--line2);border-radius:10px;padding:3px;z-index:3}
+.cmpbar .tb{min-height:28px;padding:0 8px;font-size:11.5px}
+.photo-drop{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--muted);background:rgba(10,12,15,.9);z-index:3;padding:12px;font-size:13px}
+.photo-drop svg{width:30px;height:30px;color:var(--accent)}
+
+.mrow{display:flex;align-items:center;gap:10px;padding:6px 12px 0}
+.meter{position:relative;height:26px;flex:1;min-width:0}
+.meter .scale{position:absolute;left:0;right:0;top:6px;height:6px;border-radius:3px;background:linear-gradient(90deg,#1b3b8f 0%,#2d6fd6 25%,#3ddc97 42%,#3ddc97 58%,#ffb02e 75%,#ff4b4b 100%)}
+.meter .tk{position:absolute;top:13px;font:9px var(--mono);color:var(--dim);transform:translateX(-50%)}
+.meter .needle{position:absolute;top:0;width:0;height:16px;transition:left .18s ease-out}
+.meter .needle:before{content:"";position:absolute;left:-5px;top:-2px;border:5px solid transparent;border-top:7px solid #fff}
+.meter .needle:after{content:"";position:absolute;left:-1px;top:5px;width:2px;height:10px;background:#fff;box-shadow:0 0 3px #000}
+.expv{font:600 15px var(--mono);white-space:nowrap;text-align:right;min-width:116px;display:flex;flex-direction:column;line-height:1.15}
+.expv small{font:500 10.5px var(--sans)}
+.crow{display:flex;align-items:center;gap:6px;padding:6px 12px 8px}
+.crow .sp{flex:1}
+.tc{font:10.5px var(--mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tc b{color:var(--text);font-weight:500}
+
+.seg{display:inline-flex;background:#0d1014;border:1px solid var(--line2);border-radius:10px;padding:2px;gap:2px}
+.seg button{border:0;background:transparent;border-radius:8px;padding:6px 9px;cursor:pointer;color:var(--muted);white-space:nowrap;font-size:12.5px;min-height:30px}
+.seg button.on{background:var(--accent);color:var(--ink);font-weight:600}
+.seg.full{display:flex}
+.seg.full button{flex:1;padding:6px 2px}
+
+/* zadanie aktywne */
+.exbanner{display:flex;align-items:flex-start;gap:8px;margin:0 10px 8px;padding:8px 8px 8px 10px;background:var(--panel2);border:1px solid var(--accent-d);border-radius:10px;font-size:12.5px;line-height:1.4;max-height:28vh;overflow:auto}
+.exbanner.solved{border-color:var(--good)}
+.exbanner>svg{display:none}
+.exbanner .g{flex:1;min-width:0}
+.exbanner b{color:var(--accent)}
+.exbanner .goal{color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer;margin-top:1px}
+.exbanner .goal.open{display:block}
+.exbanner .fbk{font-size:0;margin-top:4px}
+.exbanner .fbk span{display:block;font-size:12px}
+.exbanner .tb{min-height:32px;padding:0 9px;font-size:12px}
+
+/* panele */
+#panels{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 14px 18px;overscroll-behavior:contain}
+.panel>.sec{border-bottom:0}
+.sec>h3{display:flex;align-items:center;gap:8px;margin:14px 0 2px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:650}
+.sec>h3 svg{width:15px;height:15px;color:var(--accent)}
+.ctl{padding:10px 0 8px;border-bottom:1px solid var(--line)}
+.ctl-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:2px}
+.ctl-h label{font-weight:600;font-size:14px}
+.ctl-h .v{font:600 15px var(--mono);color:var(--accent);white-space:nowrap;text-align:right}
+.ctl-h .v small{display:block;color:var(--muted);font:400 11px var(--sans);white-space:normal}
+.sub{font-size:12px;color:var(--muted);margin:1px 0 4px}
+.ticks{position:relative;height:14px;font:10px var(--mono);color:var(--dim);margin:0 12px}
+.ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.edu{font-size:12.5px;line-height:1.45;color:#c9d0dc;background:rgba(76,195,255,.07);border-left:2px solid var(--cyan);border-radius:0 8px 8px 0;padding:7px 9px;margin-top:8px}
+.edu.flash{animation:flash .6s ease-out}
+@keyframes flash{from{background:rgba(76,195,255,.28)}}
+.edu.warn{border-left-color:var(--warn);background:rgba(255,204,77,.08)}
+body.noedu .edu,body.noedu .why-edu{display:none}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.note{font-size:12.5px;color:var(--muted);line-height:1.45;margin:8px 0}
+.note.box{border:1px dashed var(--line2);border-radius:10px;padding:8px 10px}
+.note a{color:var(--accent)}
+.shdisc{width:30px;height:30px;flex:none}
+.sw{display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-select:none;min-height:36px}
+.sw input{position:absolute;opacity:0;width:1px;height:1px}
+.sw span{width:40px;height:24px;border-radius:12px;background:#2a313c;position:relative;transition:.2s;flex:none}
+.sw span:after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#c9d0db;transition:.2s}
+.sw input:checked+span{background:var(--accent)}
+.sw input:checked+span:after{left:19px;background:var(--ink)}
+.sw input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.sw em{font-style:normal;font-size:13.5px}
+
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:36px;background:transparent;margin:0;cursor:pointer;--trk:#2a303a;touch-action:pan-y}
+input[type=range]:focus{outline:none}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--trk)}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:var(--trk)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;margin-top:-10px;border-radius:50%;background:#f4f6fa;border:4px solid var(--accent);box-shadow:0 2px 8px rgba(0,0,0,.6)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#f4f6fa;border:4px solid var(--accent)}
+input[type=range]:disabled::-webkit-slider-thumb{border-color:#6a7280}
+input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 5px rgba(245,165,36,.35)}
+
+.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}
+.actions .tb{flex-direction:column;gap:2px;min-height:54px;padding:4px;font-size:11px;white-space:normal;text-align:center;line-height:1.15}
+.dd{position:relative;display:grid}
+.menu{position:absolute;top:58px;left:0;z-index:30;background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:6px;width:min(300px,86vw);box-shadow:0 18px 40px rgba(0,0,0,.6)}
+.menu button{display:block;width:100%;text-align:left;background:transparent;border:0;border-radius:8px;padding:9px 10px;cursor:pointer}
+.menu button small{display:block;color:var(--muted);font-size:11.5px}
+
+/* zadania */
+.scorecard{display:flex;align-items:center;gap:12px;margin:14px 0 4px;padding:12px 14px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
+.scorecard .lbl{flex:1;min-width:0;font-size:12.5px;color:var(--muted)}
+.scorecard .lbl strong{display:block;color:var(--text);font-size:14px}
+.scorecard .track{height:6px;border-radius:3px;background:#2a303a;margin-top:6px;overflow:hidden}
+#scorebar{height:100%;background:var(--good);width:0;transition:width .3s}
+#score{font:600 22px var(--mono);color:var(--muted)} #score b{color:var(--good)}
+.ex{border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin:10px 0;background:var(--panel)}
+.ex.active{border-color:var(--accent-d)}
+.ex h5{margin:0;font-size:14.5px;display:flex;align-items:center;gap:8px}
+.ex h5 .n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--panel3);font-size:11.5px;color:var(--accent);flex:none}
+.ex.done h5 .n{background:var(--good);color:#06281a}
+.ex .lvl{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--cyan);margin:4px 0 4px 32px}
+.ex p{margin:0 0 9px;color:#c9d0dc;font-size:13px}
+.fbk{margin-top:8px;font-size:12.5px}
+.fbk div{padding:2px 0}
+.fbk .tip{margin-top:6px;color:#c9d0dc;border-left:2px solid var(--cyan);padding-left:8px}
+.ok{color:var(--good)} .wr{color:var(--warn)} .er{color:var(--bad)}
+
+/* analiza */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:12px}
+.card h4{margin:0 0 8px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:650;display:flex;justify-content:space-between;gap:8px}
+.card h4 em{font-style:normal;letter-spacing:0;text-transform:none;font:12px var(--mono);color:var(--text)}
+.eq{font:12px var(--mono);color:var(--muted);line-height:1.6}
+#hist{width:100%;height:110px;display:block;border-radius:8px;background:#0a0c0f}
+.hcap{font-size:11px;color:var(--muted);margin-top:4px}
+.stats{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 10px;font-size:13px;margin:0}
+.stats dt{color:var(--muted)} .stats dd{margin:0;font-family:var(--mono);text-align:right}
+#tline{width:100%;height:44px;display:block;margin-top:10px}
+.why{font-size:13px;line-height:1.5}
+.why p{margin:0 0 8px}
+.why b{color:#fff}
+.why .k{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.why .disc{color:var(--dim);font-size:11.5px;border-top:1px solid var(--line);padding-top:6px}
+
+/* nawigacja */
+.nav{flex:none;display:grid;grid-template-columns:repeat(5,1fr);background:var(--panel);border-top:1px solid var(--line);padding:4px 4px calc(4px + env(safe-area-inset-bottom,0px))}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:transparent;color:var(--muted);font-size:10.5px;padding:6px 2px;border-radius:10px;cursor:pointer;min-height:48px}
+.nav button svg{width:21px;height:21px}
+.nav button.on{color:var(--accent)}
+.nav button.on svg{stroke-width:2.2}
+
+/* modale, toast */
+.modal{position:fixed;inset:0;z-index:50;background:rgba(5,6,8,.75);display:flex;align-items:flex-end;justify-content:center}
+.modal .dlg{background:var(--panel);border:1px solid var(--line2);border-radius:16px 16px 0 0;width:100%;max-width:760px;max-height:88%;display:flex;flex-direction:column}
+.modal header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
+.modal header h2{margin:0;font-size:16px}
+.modal .bd{overflow:auto;padding:12px 16px 24px;font-size:13.5px;line-height:1.55}
+.modal .bd h3{font-size:13px;color:var(--accent);margin:16px 0 6px}
+.modal .bd ul{margin:0;padding-left:20px} .modal .bd li{margin:4px 0}
+.saved{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.saved .it{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--panel2)}
+.saved .it div{flex:1;min-width:0}
+.saved .it small{display:block;color:var(--muted);font:11px var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inp{background:#0d1014;border:1px solid var(--line2);border-radius:10px;color:var(--text);padding:9px 10px;font:inherit;flex:1;min-width:0}
+.toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;background:#232a35;border:1px solid var(--line2);padding:9px 14px;border-radius:12px;z-index:60;transition:.25s;pointer-events:none;width:max-content;max-width:calc(100vw - 32px);font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* telefon poziomo i komputer: podgląd po lewej, panel po prawej */
+@media (orientation:landscape) and (max-height:560px), (min-width:900px){
+  .app{max-width:1400px;display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,400px);grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"top top" "viewer panels" "viewer nav"}
+  .top{grid-area:top} .viewer{grid-area:viewer;border-bottom:0;border-right:1px solid var(--line);overflow:auto;display:flex;flex-direction:column}
+  #panels{grid-area:panels} .nav{grid-area:nav}
+  .stage{max-height:none;flex:none}
+}
+@media (orientation:landscape) and (max-height:560px){ .stage{max-height:calc(100vh - 150px)} }
+</style></head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+ <defs>
+  <symbol id="i-aperture" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m14.31 8 5.74 9.94M9.69 8h11.48M7.38 12l5.74-9.94M9.69 16 3.95 6.06M14.31 16H2.83M16.62 12l-5.74 9.94"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4.5" width="4" height="15" rx="1" fill="currentColor"/><rect x="14" y="4.5" width="4" height="15" rx="1" fill="currentColor"/></symbol>
+  <symbol id="i-fwd" viewBox="0 0 24 24"><path d="M5 5l10 7-10 7z"/><path d="M19 5v14"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 5 9 12l10 7z"/><path d="M5 5v14"/></symbol>
+  <symbol id="i-compare" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 2v20"/><path d="m7 10-2 2 2 2M17 10l2 2-2 2"/></symbol>
+  <symbol id="i-wand" viewBox="0 0 24 24"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+  <symbol id="i-mountain" viewBox="0 0 24 24"><path d="m8 3 4 8 5-5 5 15H2z"/></symbol>
+  <symbol id="i-tv" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="m17 2-5 5-5-5"/></symbol>
+  <symbol id="i-car" viewBox="0 0 24 24"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.2"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5"/></symbol>
+  <symbol id="i-focus" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="m12 14 4-4M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="m16 3 4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"/></symbol>
+ </defs>
+</svg><div class="app">
+  <header class="top">
+    <div class="logo"><svg class="i"><use href="#i-aperture"/></svg>KADR</div>
+    <nav class="scenes" id="scenes" aria-label="Sceny"></nav>
+    <button class="ib" id="btnHelp" aria-label="Instrukcja"><svg class="i"><use href="#i-help"/></svg></button>
+  </header>
+
+  <section class="viewer">
+    <div class="stage" id="stage">
+      <div class="view" id="view">
+        <canvas id="disp" width="960" height="540" aria-label="Podgląd z kamery — stuknij, aby ustawić ostrość"></canvas>
+        <div class="hud" id="hud">
+          <div class="tl" id="hudTL"></div><div class="tr" id="hudTR"></div>
+          <div class="bl" id="hudBL"></div><div class="br" id="hudBR"></div>
+          <div class="ab a" id="hudA" hidden></div><div class="ab b" id="hudB" hidden></div>
+          <div class="split" id="split" hidden></div>
+        </div>
+      </div>
+      <div class="cmpbar" id="cmpbar" hidden>
+        <div class="seg" id="segCmp"><button data-v="split" class="on">Suwak</button><button data-v="side">Obok</button></div>
+        <button class="tb" id="btnSetA">Bieżące = A</button>
+        <button class="tb" id="btnCmpEnd" aria-label="Zakończ porównanie"><svg class="i"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="photo-drop" id="photoDrop" hidden>
+        <div>
+          <svg class="i"><use href="#i-image"/></svg>
+          <div style="color:var(--text);font-size:15px;margin:4px 0">Wczytaj własne zdjęcie</div>
+          <div>JPG, PNG lub WebP. Zdjęcie zostaje na Twoim telefonie.</div>
+          <div style="margin-top:10px"><button class="tb pri" id="btnPhotoPick"><svg class="i"><use href="#i-upload"/></svg>Wybierz zdjęcie</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="mrow">
+      <div class="meter" id="meter"><div class="scale"></div><div class="needle" id="needle"></div></div>
+      <div class="expv" id="expVal"></div>
+    </div>
+    <div class="crow">
+      <button class="ib" id="btnBack" aria-label="Poprzednia klatka"><svg class="i"><use href="#i-back"/></svg></button>
+      <button class="ib play" id="btnPlay" aria-label="Odtwarzaj / pauza"><svg class="i"><use href="#i-pause"/></svg></button>
+      <button class="ib" id="btnFwd" aria-label="Następna klatka"><svg class="i"><use href="#i-fwd"/></svg></button>
+      <div class="seg" id="segPlay"><button data-v="real">Na żywo</button><button data-v="25">25 FPS</button></div>
+      <span class="sp"></span>
+      <button class="ib" id="btnCompare" aria-label="Porównaj ustawienia A/B"><svg class="i"><use href="#i-compare"/></svg></button>
+    </div>
+    <div class="tc" id="timecode" style="padding:0 12px 6px"></div>
+    <div class="exbanner" id="exbanner" hidden></div>
+  </section>
+
+  <main id="panels">
+    <div class="panel" id="p-exp">
+      <div class="actions">
+        <button class="tb" id="btnAuto"><svg class="i"><use href="#i-wand"/></svg>Auto ekspozycja</button>
+        <div class="dd"><button class="tb" id="btnPresets"><svg class="i"><use href="#i-sliders"/></svg>Presety</button><div class="menu" id="menuPresets" hidden></div></div>
+        <button class="tb" id="btnSave"><svg class="i"><use href="#i-save"/></svg>Zapisz</button>
+        <button class="tb" id="btnReset"><svg class="i"><use href="#i-reset"/></svg>Domyślne</button>
+      </div>
+    </div>
+    <div class="panel" id="p-time" hidden></div>
+    <div class="panel" id="p-lens" hidden></div>
+    <div class="panel" id="p-ex" hidden>
+      <div class="scorecard">
+        <div class="lbl"><strong>Zadania na zajęcia</strong>Wybierz zadanie, wykonaj je i kliknij „Sprawdź” pod podglądem.<div class="track"><div id="scorebar"></div></div></div>
+        <div id="score"></div>
+      </div>
+      <div class="row" id="resetRow" style="justify-content:space-between;margin-top:6px"><span class="note" style="margin:0">Wyniki zapisują się na tym telefonie.</span><button class="tb sm" id="btnResetScore">Wyczyść wyniki</button></div>
+    </div>
+    <div class="panel" id="p-info" hidden>
+      <div class="card"><h4>Dlaczego obraz tak wygląda?</h4><div class="why" id="why"></div></div>
+      <div class="card"><h4>Ekspozycja <em id="expEv"></em></h4><div class="eq" id="expEq"></div></div>
+      <div class="card"><h4>Histogram <em id="clipInfo"></em></h4><canvas id="hist" width="600" height="220"></canvas><div class="hcap">cienie ← tony średnie → światła</div></div>
+      <div class="card"><h4>Głębia ostrości i ruch</h4><dl class="stats" id="stats"></dl><canvas id="tline" width="600" height="80"></canvas></div>
+      <div class="card"><label class="sw"><input type="checkbox" id="edu" checked><span></span><em>Wskazówki pod suwakami</em></label>
+        <div class="note" style="margin-bottom:0">KADR to symulator edukacyjny. Pokazuje prawidłowe zależności, ale nie jest fizycznie dokładnym modelem konkretnej kamery.</div></div>
+      <div style="height:6px"></div>
+    </div>
+    <div id="tab-cam" hidden></div>
+    <div id="tab-ex" hidden></div>
+  </main>
+
+  <nav class="nav" id="nav" aria-label="Zakładki">
+    <button data-t="exp" class="on"><svg class="i"><use href="#i-sun"/></svg>Ekspozycja</button>
+    <button data-t="time"><svg class="i"><use href="#i-film"/></svg>Ruch</button>
+    <button data-t="lens"><svg class="i"><use href="#i-aperture"/></svg>Obiektyw</button>
+    <button data-t="ex"><svg class="i"><use href="#i-target"/></svg>Zadania</button>
+    <button data-t="info"><svg class="i"><use href="#i-gauge"/></svg>Analiza</button>
+  </nav>
+</div>
+
+<div class="modal" id="mSave" hidden>
+  <div class="dlg">
+    <header><h2>Zapisane ustawienia</h2><button class="ib" data-close aria-label="Zamknij"><svg class="i"><use href="#i-x"/></svg></button></header>
+    <div class="bd">
+      <div class="row"><input class="inp" id="saveName" maxlength="60" placeholder="Nazwa ustawień"><button class="tb pri" id="btnSaveDo">Zapisz</button></div>
+      <div class="note">Ustawienia zapisują się tylko na tym telefonie.</div>
+      <div class="saved" id="savedList"></div>
+    </div>
+  </div>
+</div>
+<input type="file" id="filePhoto" accept="image/jpeg,image/png,image/webp" hidden>
+<div class="toast" id="toast" role="status"></div>
+<div class="modal" id="mHelp" hidden>
+  <div class="dlg">
+    <header><h2>Jak korzystać z KADR</h2><button class="ib" data-close aria-label="Zamknij"><svg class="i"><use href="#i-x"/></svg></button></header>
+    <div class="bd">
+      <p>KADR pokazuje w czasie rzeczywistym, jak <b>ISO</b>, <b>przysłona</b>, <b>czas migawki</b>, <b>liczba klatek (FPS)</b> i <b>filtr ND</b> wpływają na obraz. Przesuwaj suwaki i obserwuj podgląd, wskaźnik ekspozycji, histogram oraz objaśnienia.</p>
+      <h3>Szybki start</h3>
+      <ul>
+        <li>Wybierz scenę na górnym pasku (przesuń palcem, by zobaczyć wszystkie) albo wczytaj własne zdjęcie.</li>
+        <li>Ustawienia kamery są w zakładkach na dole: <b>Ekspozycja</b>, <b>Ruch</b> (FPS i migawka), <b>Obiektyw</b>. Pod każdym suwakiem pojawia się objaśnienie tego, co się właśnie zmieniło.</li>
+        <li><b>Stuknij w podgląd</b>, aby ustawić ostrość na wskazanym elemencie sceny.</li>
+        <li>Przycisk porównania (obok „25 FPS”) zapamiętuje obraz A. Zmieniaj ustawienia i porównuj z obrazem B, przesuwając biały suwak na podglądzie.</li>
+        <li>Zakładka <b>Zadania</b> zawiera 8 zadań sprawdzanych automatycznie, w tym trzy wyzwania „Odtwórz kadr”. Zakładka <b>Analiza</b> wyjaśnia, dlaczego obraz wygląda tak, a nie inaczej.</li>
+        </ul>
+      <h3>Najważniejsze zależności (zapamiętaj)</h3>
+      <ul>
+        <li><b>Ekspozycję tworzą światło sceny, przysłona, czas migawki i filtr ND</b> — to one decydują, ile światła trafia na matrycę.</li>
+        <li><b>ISO nie dodaje światła.</b> To wzmocnienie sygnału już zarejestrowanego. Jaśniejszy obraz przy wyższym ISO powstaje z tej samej (lub mniejszej) ilości światła — dlatego rośnie widoczność szumu, a w światłach ubywa zapasu.</li>
+        <li><b>Mniejsza liczba f/ = większy otwór przysłony</b>: więcej światła i płytsza głębia ostrości. Zmiana o „1 stopień” (np. f/2.8 → f/4) to połowa lub dwukrotność światła.</li>
+        <li><b>Głębia ostrości zależy też od ogniskowej, odległości ostrzenia i wielkości matrycy</b>, a nie tylko od przysłony.</li>
+        <li><b>FPS to nie czas migawki.</b> FPS mówi, ile klatek powstaje w ciągu sekundy; migawka — jak długo naświetlana jest każda z nich. FPS nie zmienia głębi ostrości ani jasności; ogranicza jedynie najdłuższy możliwy czas migawki (maks. 1/FPS).</li>
+        <li><b>Zasada 180°</b>: czas migawki ≈ 1/(2 × FPS), np. 25 FPS → 1/50 s. Daje rozmycie ruchu, które widzowie odbierają jako naturalne, „filmowe”.</li>
+        <li><b>Rozmycie tła (głębia ostrości) i rozmycie ruchu to dwa różne zjawiska</b>: pierwsze wynika z ustawień obiektywu, drugie z ruchu obiektu w czasie otwarcia migawki.</li>
+        <li><b>Zwolnione tempo</b> = klatki zarejestrowane / klatki odtwarzane. 100 FPS odtworzone w 25 FPS daje spowolnienie 4×.</li>
+        <li><b>Filtr ND</b> to „okulary przeciwsłoneczne” obiektywu: pozwala zachować szeroką przysłonę i migawkę 180° w jasnym świetle.</li>
+      </ul>
+      <h3>Jak działa symulacja</h3>
+      <ul>
+        <li><b>Ekspozycja</b>: Δ = EV sceny + log₂(ISO/100) − log₂(N²/t) − ND. Obraz przetwarzany jest w wartościach liniowych, z obcięciem świateł po nasyceniu matrycy.</li>
+        <li><b>Szum</b>: model szumu fotonowego (zależnego od ilości zebranego światła) i szumu odczytu, wzmacnianych przez ISO. Szum zależy od typu matrycy i pokazany jest jak na powiększeniu 1:1. Prawdziwe kamery różnią się elektroniką, „dual native ISO” i odszumianiem — rzeczywisty wygląd szumu będzie inny w każdym modelu.</li>
+        <li><b>Głębia ostrości</b>: sceny składają się z warstw w znanej odległości. Dla każdej liczony jest krążek rozmycia (wzór soczewki cienkiej), a punkty światła rysowane są jako bokeh. Kadr pozostaje stały: przy zmianie ogniskowej lub matrycy symulator zakłada, że kamera przesuwa się tak, by postać miała tę samą wielkość w kadrze.</li>
+        <li><b>Ruch</b>: kamera rejestruje dyskretne klatki co 1/FPS s. Każda klatka powstaje z wielu chwil w czasie otwarcia migawki — stąd rozmycie ruchu. Odtwarzanie 25 FPS pokazuje, jak materiał wygląda po zwolnieniu.</li>
+      </ul>
+      <h3>Ograniczenia</h3>
+      <ul>
+        <li>To symulator dydaktyczny, a nie fizycznie dokładny model konkretnej kamery. Wartości pikseli rozmycia i szumu są przybliżeniami.</li>
+        <li>Monitor odświeża się zwykle 60 razy na sekundę, więc w trybie „czas rzeczywisty” nie wyświetli wszystkich klatek z 100/120 FPS. Różnicę w próbkowaniu najlepiej widać w trybie 25 FPS, na pauzie lub z włączonym „próbkowaniem ruchu”.</li>
+        <li>Nie symulujemy rolling shutter, dyfrakcji (zaznaczana opisowo przy f/16–f/22), winietowania ani aberracji.</li>
+        <li>Dla własnego zdjęcia nie znamy mapy głębi: rozmycie tła jest tylko przybliżeniem (strefa wokół wskazanego punktu), a ruchu nie da się odtworzyć.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* =====================================================================
+   KADR — symulator ustawień kamery
+   Architektura:
+   1. MODEL     — wartości parametrów i spójny model fizyczny (ekspozycja,
+                  szum, głębia ostrości, próbkowanie ruchu)       [ten plik]
+   2. SCENY     — proceduralne warstwy w znanej odległości + światła
+   3. RENDER    — kompozycja warstw z rozmyciem CoC, bokeh, rozmycie
+                  ruchu (całkowanie w czasie migawki), potok liniowy
+                  z szumem fotonowym i odczytu
+   4. UI        — kontrolki, tryb edukacyjny, porównanie A/B, ćwiczenia
+   ===================================================================== */
+
+const W = 960, H = 540;                       // rozdzielczość robocza podglądu
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const pl = (x, d = 1) => x.toFixed(d).replace('.', ',');
+function mk(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+
+/* ---------- skale parametrów (co 1/3 EV, jak w kamerach) ---------- */
+const ISO_L = [100,125,160,200,250,320,400,500,640,800,1000,1250,1600,2000,2500,3200,4000,5000,6400,8000,10000,12800];
+const isoVal = i => 100 * Math.pow(2, i / 3);
+const F_L = [1.4,1.6,1.8,2,2.2,2.5,2.8,3.2,3.5,4,4.5,5,5.6,6.3,7.1,8,9,10,11,13,14,16,18,20,22];
+const fVal = i => Math.pow(2, 0.5 + i / 6);   // wartość dokładna: √2^(1+i/3)
+const SH = [25,30,40,48,50,60,80,100,120,125,160,200,240,250,320,400,500,640,800,1000,1250,1600,2000];
+const FPS_L = [24,25,30,50,60,100,120];
+const ND = [
+  {s:0, l:'Brak', d:'bez filtra'}, {s:1, l:'ND 0.3', d:'−1 EV'}, {s:2, l:'ND 0.6', d:'−2 EV'},
+  {s:3, l:'ND 0.9', d:'−3 EV'}, {s:4, l:'ND 1.2', d:'−4 EV'}, {s:6, l:'ND 1.8', d:'−6 EV'}];
+const FOC = [16,20,24,28,35,50,70,85,105,135,200];
+// Matryce: szerokość/wysokość [mm]; fw — pojemność "piksela podglądu" (skalowana z polem matrycy), rd — szum odczytu [e-]
+const SENS = {
+  ff:  {n:'Pełna klatka', s:'FF',  w:36,   h:24},
+  s35: {n:'Super 35',     s:'S35', w:24.9, h:14},
+  m43: {n:'Mikro 4/3',    s:'M4/3',w:17.3, h:13},
+  one: {n:'1 cal',        s:'1″',  w:13.2, h:8.8},
+};
+for (const k in SENS) { const s = SENS[k]; s.fw = 17000 * Math.pow(s.w / 36, 2); s.rd = 3; }
+const SENS_ORDER = ['ff','s35','m43','one'];
+
+function evLabel(ev) {
+  if (ev <= 1.5) return 'bardzo ciemno (świeca, księżyc)';
+  if (ev <= 4.5) return 'nocna ulica, oświetlenie uliczne';
+  if (ev <= 7.5) return 'wnętrze wieczorem';
+  if (ev <= 10.5) return 'jasne wnętrze, studio TV';
+  if (ev <= 12.5) return 'cień, mocne zachmurzenie';
+  if (ev <= 14.5) return 'dzień, lekkie zachmurzenie';
+  return 'pełne słońce';
+}
+function fmtT(t) {
+  const d = 1 / t;
+  if (d >= 1.5) { const r = Math.round(d); return '1/' + (Math.abs(d - r) < 0.06 ? r : pl(d, 1)); }
+  return pl(t, 2);
+}
+function fmtDist(m) {
+  if (!isFinite(m) || m >= 900) return '∞';
+  if (m < 10) return pl(m, 2) + ' m';
+  return pl(m, 1) + ' m';
+}
+function fmtEv(x) { const r = Math.round(x * 10) / 10; return (r > 0 ? '+' : r < 0 ? '−' : '±') + pl(Math.abs(r), 1); }
+function nearestSH(t) {
+  let bi = 0, bd = 1e9;
+  SH.forEach((s, i) => { const d = Math.abs(Math.log(s * t)); if (d < bd) { bd = d; bi = i; } });
+  return bi;
+}
+
+/* ---------- stan kamery ---------- */
+// t — czas migawki [s] (podstawowa wielkość); angle — kąt migawki pamiętany w trybie "kąt"
+const S = {
+  scene: 'portrait', ev: 8, iso: 2, f: 6, t: 1/50, angle: 180, mode: 'speed', lock180: false,
+  fps: 25, nd: 0, foc: 7, sensor: 'ff', focusOff: 0, speed: 30,
+  play: 'real', nr: true, zebra: false, onion: false,
+  photoBlur: true, photoBg: 6, photoR: 0.32, photoFx: 0.5, photoFy: 0.45,
+};
+const CAM_KEYS = ['ev','iso','f','t','angle','mode','lock180','fps','nd','foc','sensor','focusOff','speed','nr','photoBlur','photoBg','photoR','photoFx','photoFy'];
+const camSnap = st => { const o = {}; CAM_KEYS.forEach(k => o[k] = st[k]); o.scene = st.scene; o.play = st.play; return o; };
+
+/* ---------- model fizyczny ---------- */
+function derive(st) {
+  const scn = SCN[st.scene];
+  const N = fVal(st.f), iso = isoVal(st.iso), t = st.t, F = st.fps;
+  const nd = ND[st.nd].s, f = FOC[st.foc], sen = SENS[st.sensor];
+  const evCam = Math.log2(N * N / t);             // "wartość ekspozycji" ustawień
+  const isoSt = Math.log2(iso / 100);
+  const delta = st.ev + isoSt - evCam - nd;      // odchyłka ekspozycji w EV (0 = poprawnie)
+  const L = delta - isoSt;                        // ilość światła na matrycy względem ISO 100 (log2)
+  // stały kadr: kamera odsuwa się proporcjonalnie do ogniskowej i odwrotnie do szerokości matrycy
+  const sSubj = scn.s0 * (f / scn.f0) * (36 / sen.w);
+  let focus = isFinite(st.focusOff) ? sSubj + st.focusOff : 1e5;
+  focus = Math.max(0.3, focus);
+  const s = focus * 1000, pxmm = W / sen.w;
+  const kc = f * f / (N * (s - f));
+  const coc = dm => { const d = dm * 1000; return kc * Math.abs(d - s) / d * pxmm; }; // średnica krążka rozmycia [px]
+  // głębia ostrości: CoC dopuszczalny = przekątna/1500
+  const cAcc = Math.hypot(sen.w, sen.h) / 1500;
+  const Hf = f * f / (N * cAcc) + f;
+  const near = s * (Hf - f) / (Hf + s - 2 * f) / 1000;
+  const far = s < Hf ? s * (Hf - f) / (Hf - s) / 1000 : Infinity;
+  // szum: piksel podglądu zbiera p = b·2^L·FW fotoelektronów, wzmocnienie G = (ISO/100)/FW
+  const fw = sen.fw, G = (iso / 100) / fw, rd = sen.rd;
+  const pMid = Math.min(fw, 0.18 * Math.pow(2, L) * fw);
+  const pSh = Math.min(fw, 0.03 * Math.pow(2, L) * fw);
+  const noiseMid = Math.sqrt(pMid + rd * rd) / Math.max(pMid, 1e-6);
+  const noiseSh = Math.sqrt(pSh + rd * rd) / Math.max(pSh, 1e-6);
+  const angle = 360 * F * t;
+  // ruch (scena Ruch): stały kadr → stała skala px/m na płaszczyźnie samochodu
+  const pxPerM = W / (scn.s0 * 36 / scn.f0);
+  const vpx = (st.speed / 3.6) * pxPerM;
+  return { st, scn, N, iso, t, F, nd, f, sen, evCam, isoSt, delta, L, sSubj, focus, coc, near, far, Hf: Hf / 1000,
+    fw, G, rd, noiseMid, noiseSh, angle, vpx, motionPx: vpx * t, frameMs: 1000 / F, pxPerM, cAccPx: cAcc * pxmm };
+}
+function noiseWord(n) {
+  if (n < 0.012) return ['praktycznie niewidoczny', 'ok'];
+  if (n < 0.03) return ['delikatny', 'ok'];
+  if (n < 0.07) return ['wyraźny', 'wr'];
+  if (n < 0.15) return ['silny', 'er'];
+  return ['bardzo silny', 'er'];
+}
+
+/* ---------- wspólne narzędzia ---------- */
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+// tablica liczb o rozkładzie normalnym (Box–Muller) — szum bez kosztownego losowania na piksel
+const GT_BITS = 20, GT_N = 1 << GT_BITS, GT_MASK = GT_N - 1, GT = new Float32Array(GT_N);
+(() => { const r = mulberry32(12345); for (let i = 0; i < GT_N; i += 2) { const u = Math.max(1e-9, r()), v = r(); const m = Math.sqrt(-2 * Math.log(u)); GT[i] = m * Math.cos(2 * Math.PI * v); GT[i + 1] = m * Math.sin(2 * Math.PI * v); } })();
+// sRGB <-> liniowe
+const S2L = new Float32Array(256), L2S = new Uint8ClampedArray(4096);
+for (let i = 0; i < 256; i++) { const c = i / 255; S2L[i] = c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+for (let i = 0; i < 4096; i++) { const l = i / 4095; L2S[i] = Math.round(255 * (l <= 0.0031308 ? l * 12.92 : 1.055 * Math.pow(l, 1 / 2.4) - 0.055)); }
+const LIGHT_HDR = 8;  // bufor świateł przechowuje wartości do 8× jaśniejsze od bieli
+/* =====================================================================
+   2. SCENY — każda scena to zestaw warstw w znanej odległości od
+   obiektu głównego (off, w metrach; Infinity = nieskończoność).
+   Warstwy rysowane są raz (proceduralnie), światła punktowe zapisane
+   osobno, aby móc je narysować jako bokeh o właściwej średnicy.
+   ===================================================================== */
+const TAU = Math.PI * 2;
+function lg(c, x0, y0, x1, y1, st) { const g = c.createLinearGradient(x0, y0, x1, y1); st.forEach(s => g.addColorStop(s[0], s[1])); return g; }
+function rg(c, x0, y0, r0, x1, y1, r1, st) { const g = c.createRadialGradient(x0, y0, r0, x1, y1, r1); st.forEach(s => g.addColorStop(s[0], s[1])); return g; }
+function ell(c, x, y, rx, ry, rot = 0) { c.beginPath(); c.ellipse(x, y, Math.max(0.1, rx), Math.max(0.1, ry), rot, 0, TAU); }
+function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+const hsl = (h, s, l, a = 1) => `hsla(${h},${s}%,${l}%,${a})`;
+
+/* ---------- postać (portret, studio, noc) ---------- */
+function drawPerson(c, o) {
+  const x = o.x, s = o.s, hy = o.y + 0.64 * s, rx = 0.5 * s, ry = 0.64 * s, ys = hy + 0.98 * s;
+  c.save();
+  // włosy z tyłu
+  if (o.hairStyle === 'long') {
+    c.fillStyle = lg(c, 0, hy - ry, 0, hy + 1.6 * s, [[0, o.hair], [1, o.hairD]]);
+    c.beginPath();
+    c.moveTo(x - 0.62 * s, hy - 0.05 * s);
+    c.bezierCurveTo(x - 0.78 * s, hy + 0.6 * s, x - 0.8 * s, hy + 1.2 * s, x - 0.66 * s, hy + 1.6 * s);
+    c.lineTo(x + 0.66 * s, hy + 1.6 * s);
+    c.bezierCurveTo(x + 0.8 * s, hy + 1.2 * s, x + 0.78 * s, hy + 0.6 * s, x + 0.62 * s, hy - 0.05 * s);
+    c.bezierCurveTo(x + 0.62 * s, hy - 0.9 * s, x - 0.62 * s, hy - 0.9 * s, x - 0.62 * s, hy - 0.05 * s);
+    c.fill();
+  }
+  // szyja
+  c.fillStyle = lg(c, x - 0.25 * s, 0, x + 0.25 * s, 0, [[0, o.skin], [1, o.skinD]]);
+  c.beginPath(); c.moveTo(x - 0.2 * s, hy + 0.3 * s); c.lineTo(x - 0.24 * s, ys + 0.1 * s); c.lineTo(x + 0.24 * s, ys + 0.1 * s); c.lineTo(x + 0.2 * s, hy + 0.3 * s); c.fill();
+  c.fillStyle = 'rgba(60,25,15,0.35)'; ell(c, x + 0.02 * s, hy + 0.56 * s, 0.24 * s, 0.1 * s); c.fill();
+  // tułów
+  const torso = () => {
+    c.beginPath();
+    c.moveTo(x - 0.26 * s, ys - 0.12 * s);
+    c.bezierCurveTo(x - 0.55 * s, ys + 0.02 * s, x - 1.35 * s, ys + 0.02 * s, x - 1.62 * s, ys + 0.5 * s);
+    c.lineTo(x - 1.95 * s, ys + 3.2 * s); c.lineTo(x + 1.95 * s, ys + 3.2 * s); c.lineTo(x + 1.62 * s, ys + 0.5 * s);
+    c.bezierCurveTo(x + 1.35 * s, ys + 0.02 * s, x + 0.55 * s, ys + 0.02 * s, x + 0.26 * s, ys - 0.12 * s);
+    c.closePath();
+  };
+  torso(); c.fillStyle = lg(c, 0, ys - 0.1 * s, 0, ys + 2.6 * s, [[0, o.cloth], [1, o.clothD]]); c.fill();
+  c.save(); torso(); c.clip();
+  if (o.clothes === 'sweater') {
+    c.strokeStyle = 'rgba(0,0,0,0.16)'; c.lineWidth = Math.max(1, s * 0.014);
+    for (let i = -44; i <= 44; i++) { const xx = x + i * s * 0.045; c.beginPath(); c.moveTo(xx, ys - 0.2 * s); c.quadraticCurveTo(xx + i * s * 0.004, ys + 1.5 * s, xx + i * s * 0.012, ys + 3.2 * s); c.stroke(); }
+    c.strokeStyle = 'rgba(255,255,255,0.07)';
+    for (let i = -44; i <= 44; i++) { const xx = x + i * s * 0.045 + s * 0.02; c.beginPath(); c.moveTo(xx, ys - 0.2 * s); c.quadraticCurveTo(xx + i * s * 0.004, ys + 1.5 * s, xx + i * s * 0.012, ys + 3.2 * s); c.stroke(); }
+    // ściągacz przy szyi
+    c.fillStyle = o.clothD; ell(c, x, ys - 0.02 * s, 0.38 * s, 0.13 * s); c.fill();
+    c.fillStyle = o.skinD; ell(c, x, ys - 0.06 * s, 0.27 * s, 0.08 * s); c.fill();
+  } else if (o.clothes === 'suit') {
+    c.fillStyle = lg(c, 0, ys, 0, ys + s, [[0, '#f4f6f8'], [1, '#c9d1da']]);
+    c.beginPath(); c.moveTo(x - 0.3 * s, ys - 0.12 * s); c.lineTo(x + 0.3 * s, ys - 0.12 * s); c.lineTo(x, ys + 1.2 * s); c.fill();
+    c.fillStyle = o.tie; c.beginPath(); c.moveTo(x - 0.07 * s, ys + 0.02 * s); c.lineTo(x + 0.07 * s, ys + 0.02 * s); c.lineTo(x + 0.11 * s, ys + 0.95 * s); c.lineTo(x, ys + 1.08 * s); c.lineTo(x - 0.11 * s, ys + 0.95 * s); c.fill();
+    c.fillStyle = 'rgba(0,0,0,0.25)'; c.fillRect(x - 0.08 * s, ys - 0.06 * s, 0.16 * s, 0.09 * s);
+    for (const sd of [-1, 1]) {
+      c.fillStyle = o.cloth; c.beginPath();
+      c.moveTo(x + sd * 0.3 * s, ys - 0.14 * s); c.lineTo(x + sd * 0.62 * s, ys + 0.3 * s); c.lineTo(x + sd * 0.5 * s, ys + 0.42 * s); c.lineTo(x + sd * 0.04 * s, ys + 1.25 * s); c.lineTo(x + sd * 1.2 * s, ys + 2 * s); c.lineTo(x + sd * 1.2 * s, ys - 0.2 * s); c.fill();
+      c.strokeStyle = 'rgba(255,255,255,0.12)'; c.lineWidth = s * 0.015;
+      c.beginPath(); c.moveTo(x + sd * 0.3 * s, ys - 0.14 * s); c.lineTo(x + sd * 0.62 * s, ys + 0.3 * s); c.lineTo(x + sd * 0.5 * s, ys + 0.42 * s); c.lineTo(x + sd * 0.04 * s, ys + 1.25 * s); c.stroke();
+    }
+    c.fillStyle = '#ddd'; ell(c, x - 0.75 * s, ys + 0.55 * s, 0.05 * s, 0.03 * s); c.fill(); // mikrofon krawatowy
+  } else if (o.clothes === 'coat') {
+    c.fillStyle = o.clothD;
+    for (const sd of [-1, 1]) { c.beginPath(); c.moveTo(x + sd * 0.2 * s, ys - 0.4 * s); c.lineTo(x + sd * 0.7 * s, ys + 0.2 * s); c.lineTo(x + sd * 0.15 * s, ys + 1.0 * s); c.lineTo(x, ys - 0.1 * s); c.fill(); }
+    c.fillStyle = 'rgba(255,190,120,0.18)'; for (let i = 0; i < 3; i++) { ell(c, x + 0.06 * s, ys + 1.2 * s + i * 0.45 * s, 0.035 * s, 0.035 * s); c.fill(); }
+  }
+  c.fillStyle = lg(c, x - 1.9 * s, 0, x + 1.9 * s, 0, [[0, 'rgba(255,240,220,0.10)'], [0.5, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.38)']]);
+  c.fillRect(x - 2 * s, ys - 0.3 * s, 4 * s, 3.5 * s);
+  c.restore();
+  // uszy
+  c.fillStyle = o.skinD; ell(c, x - rx * 0.97, hy + 0.06 * s, 0.085 * s, 0.15 * s); c.fill(); ell(c, x + rx * 0.97, hy + 0.06 * s, 0.085 * s, 0.15 * s); c.fill();
+  // twarz
+  const face = () => {
+    c.beginPath(); c.moveTo(x, hy - ry);
+    c.bezierCurveTo(x + rx * 1.06, hy - ry, x + rx * 1.06, hy + 0.12 * s, x + rx * 0.86, hy + 0.36 * s);
+    c.bezierCurveTo(x + rx * 0.6, hy + 0.6 * s, x + 0.16 * s, hy + ry, x, hy + ry);
+    c.bezierCurveTo(x - 0.16 * s, hy + ry, x - rx * 0.6, hy + 0.6 * s, x - rx * 0.86, hy + 0.36 * s);
+    c.bezierCurveTo(x - rx * 1.06, hy + 0.12 * s, x - rx * 1.06, hy - ry, x, hy - ry);
+    c.closePath();
+  };
+  face(); c.fillStyle = rg(c, x - 0.16 * s, hy - 0.18 * s, 0.04 * s, x, hy, 0.78 * s, [[0, o.skinL], [0.55, o.skin], [1, o.skinD]]); c.fill();
+  c.save(); face(); c.clip();
+  c.fillStyle = lg(c, x - rx, 0, x + rx, 0, [[0, 'rgba(0,0,0,0)'], [0.55, 'rgba(0,0,0,0)'], [1, 'rgba(70,25,15,0.32)']]); c.fillRect(x - rx, hy - ry, 2 * rx, 2 * ry);
+  c.fillStyle = 'rgba(225,105,95,0.16)'; ell(c, x - 0.27 * s, hy + 0.18 * s, 0.12 * s, 0.07 * s); c.fill(); ell(c, x + 0.27 * s, hy + 0.18 * s, 0.12 * s, 0.07 * s); c.fill();
+  c.restore();
+  // oczy i brwi
+  for (const sd of [-1, 1]) {
+    const ex = x + sd * 0.19 * s, ey = hy + 0.02 * s;
+    c.fillStyle = 'rgba(90,40,30,0.18)'; ell(c, ex, ey - 0.01 * s, 0.12 * s, 0.07 * s); c.fill();
+    c.fillStyle = '#f2ece6'; ell(c, ex, ey, 0.085 * s, 0.043 * s); c.fill();
+    c.save(); ell(c, ex, ey, 0.085 * s, 0.043 * s); c.clip();
+    c.fillStyle = rg(c, ex, ey, 0, ex, ey, 0.04 * s, [[0, o.eyeL || '#7a5434'], [1, o.eye || '#3d2614']]); ell(c, ex, ey, 0.04 * s, 0.04 * s); c.fill();
+    c.fillStyle = '#0b0705'; ell(c, ex, ey, 0.018 * s, 0.018 * s); c.fill();
+    c.restore();
+    c.fillStyle = '#fff'; ell(c, ex - 0.013 * s, ey - 0.013 * s, 0.009 * s, 0.009 * s); c.fill();
+    c.strokeStyle = '#2a170d'; c.lineWidth = Math.max(1, 0.016 * s); c.lineCap = 'round';
+    c.beginPath(); c.ellipse(ex, ey + 0.004 * s, 0.09 * s, 0.047 * s, 0, Math.PI * 1.05, Math.PI * 1.95); c.stroke();
+    c.strokeStyle = o.brow || o.hairD; c.lineWidth = Math.max(1.4, 0.03 * s);
+    c.beginPath(); c.moveTo(ex - sd * 0.09 * s, ey - 0.095 * s); c.quadraticCurveTo(ex + sd * 0.01 * s, ey - 0.15 * s, ex + sd * 0.11 * s, ey - 0.08 * s); c.stroke();
+  }
+  // nos
+  c.strokeStyle = 'rgba(110,50,35,0.45)'; c.lineWidth = Math.max(1, 0.013 * s);
+  c.beginPath(); c.moveTo(x + 0.02 * s, hy + 0.04 * s); c.quadraticCurveTo(x + 0.08 * s, hy + 0.17 * s, x + 0.035 * s, hy + 0.22 * s); c.stroke();
+  c.fillStyle = 'rgba(90,35,25,0.38)'; ell(c, x - 0.035 * s, hy + 0.225 * s, 0.026 * s, 0.012 * s); c.fill(); ell(c, x + 0.04 * s, hy + 0.225 * s, 0.026 * s, 0.012 * s); c.fill();
+  c.fillStyle = 'rgba(255,240,225,0.35)'; ell(c, x - 0.01 * s, hy + 0.12 * s, 0.018 * s, 0.05 * s); c.fill();
+  // usta
+  const ly = hy + 0.35 * s;
+  c.fillStyle = o.lip || '#a5534b';
+  c.beginPath(); c.moveTo(x - 0.12 * s, ly); c.quadraticCurveTo(x - 0.05 * s, ly - 0.045 * s, x, ly - 0.022 * s); c.quadraticCurveTo(x + 0.05 * s, ly - 0.045 * s, x + 0.12 * s, ly); c.quadraticCurveTo(x, ly + 0.012 * s, x - 0.12 * s, ly); c.fill();
+  c.fillStyle = o.lipL || '#bf6a61';
+  c.beginPath(); c.moveTo(x - 0.11 * s, ly + 0.004 * s); c.quadraticCurveTo(x, ly + 0.095 * s, x + 0.11 * s, ly + 0.004 * s); c.quadraticCurveTo(x, ly + 0.018 * s, x - 0.11 * s, ly + 0.004 * s); c.fill();
+  c.strokeStyle = 'rgba(70,20,15,0.6)'; c.lineWidth = Math.max(1, 0.01 * s); c.beginPath(); c.moveTo(x - 0.12 * s, ly); c.quadraticCurveTo(x, ly + 0.02 * s, x + 0.12 * s, ly); c.stroke();
+  // włosy z przodu
+  c.fillStyle = lg(c, x - rx, hy - ry, x + rx, hy, [[0, o.hairL || o.hair], [1, o.hairD]]);
+  if (o.hairStyle === 'long') {
+    c.beginPath(); c.moveTo(x - 0.62 * s, hy + 0.3 * s);
+    c.bezierCurveTo(x - 0.68 * s, hy - 0.55 * s, x - 0.3 * s, hy - 0.88 * s, x + 0.06 * s, hy - 0.82 * s);
+    c.bezierCurveTo(x + 0.52 * s, hy - 0.8 * s, x + 0.7 * s, hy - 0.4 * s, x + 0.63 * s, hy + 0.32 * s);
+    c.bezierCurveTo(x + 0.56 * s, hy - 0.18 * s, x + 0.42 * s, hy - 0.42 * s, x + 0.12 * s, hy - 0.48 * s);
+    c.bezierCurveTo(x - 0.16 * s, hy - 0.4 * s, x - 0.42 * s, hy - 0.3 * s, x - 0.5 * s, hy + 0.12 * s);
+    c.closePath(); c.fill();
+    c.save(); c.clip(); c.strokeStyle = 'rgba(255,220,180,0.13)'; c.lineWidth = Math.max(1, s * 0.01);
+    for (let i = 0; i < 26; i++) { const a = -0.6 + i * 0.05; c.beginPath(); c.moveTo(x + a * s, hy - 0.86 * s); c.quadraticCurveTo(x + a * 1.2 * s, hy - 0.4 * s, x + a * 1.5 * s - 0.1 * s, hy + 0.3 * s); c.stroke(); }
+    c.restore();
+  } else {
+    c.beginPath(); c.moveTo(x - 0.53 * s, hy - 0.02 * s);
+    c.bezierCurveTo(x - 0.6 * s, hy - 0.8 * s, x + 0.6 * s, hy - 0.8 * s, x + 0.53 * s, hy - 0.02 * s);
+    c.lineTo(x + 0.47 * s, hy - 0.26 * s);
+    c.bezierCurveTo(x + 0.3 * s, hy - 0.46 * s, x - 0.25 * s, hy - 0.5 * s, x - 0.47 * s, hy - 0.26 * s);
+    c.closePath(); c.fill();
+  }
+  c.restore();
+}
+
+/* ---------- światła i warstwy: pomocnicze ---------- */
+function bulb(L, x, y, r, col, i) { L.lights.push({ x, y, r, c: col, i }); }
+
+/* ===================== SCENA: PORTRET ===================== */
+function buildPortrait() {
+  const R = mulberry32(7);
+  return [
+    { name: 'ściana z cegły i regał', off: 6, draw(c) {
+      c.fillStyle = lg(c, 0, 0, 0, H, [[0, '#2a1c16'], [1, '#4a3125']]); c.fillRect(0, 0, W, H);
+      const bh = 20, bw = 58;
+      for (let y = 0, row = 0; y < H; y += bh, row++) for (let x = -(row % 2) * bw / 2; x < W; x += bw) {
+        const v = R(); c.fillStyle = hsl(12 + v * 12, 28 + v * 18, 15 + v * 11); c.fillRect(x + 1.5, y + 1.5, bw - 3, bh - 3);
+        c.fillStyle = 'rgba(255,255,255,0.05)'; c.fillRect(x + 1.5, y + 1.5, bw - 3, 2);
+      }
+      c.fillStyle = rg(c, 640, 110, 10, 640, 110, 560, [[0, 'rgba(255,175,105,0.38)'], [1, 'rgba(255,175,105,0)']]); c.fillRect(0, 0, W, H);
+      // okno
+      c.fillStyle = '#1b120d'; c.fillRect(56, 56, 252, 300);
+      c.fillStyle = lg(c, 0, 70, 0, 340, [[0, '#0b1a35'], [0.7, '#22406b'], [1, '#43577a']]); c.fillRect(70, 70, 224, 272);
+      for (let i = 0; i < 9; i++) { const bx = 70 + i * 26, bh2 = 50 + R() * 120; c.fillStyle = '#0d1426'; c.fillRect(bx, 342 - bh2, 24, bh2);
+        for (let wy = 342 - bh2 + 8; wy < 336; wy += 12) for (let wx = bx + 4; wx < bx + 20; wx += 8) if (R() < 0.35) { c.fillStyle = R() < 0.5 ? '#ffd28a' : '#9fd0ff'; c.fillRect(wx, wy, 3, 4); } }
+      c.fillStyle = '#2c1d13'; c.fillRect(178, 70, 8, 272); c.fillRect(70, 200, 224, 8);
+      c.fillStyle = '#3b2717'; c.fillRect(48, 350, 268, 14);
+      // obrazy
+      c.fillStyle = '#c9a36a'; c.fillRect(352, 70, 112, 132); c.fillStyle = '#20343c'; c.fillRect(360, 78, 96, 116);
+      c.fillStyle = '#d96c3a'; ell(c, 392, 120, 22, 22); c.fill(); c.fillStyle = '#e8c868'; c.fillRect(410, 136, 36, 50); c.fillStyle = '#6aa4a0'; c.fillRect(368, 160, 50, 28);
+      c.fillStyle = '#16100c'; c.fillRect(480, 92, 84, 70); c.fillStyle = '#e8dcc6'; c.fillRect(486, 98, 72, 58); c.strokeStyle = '#333'; c.lineWidth = 2; c.beginPath(); c.moveTo(492, 146); c.lineTo(510, 118); c.lineTo(524, 136); c.lineTo(536, 124); c.lineTo(552, 146); c.stroke();
+      // regał
+      c.fillStyle = '#24160d'; c.fillRect(630, 40, 300, 440);
+      c.fillStyle = '#6b4428';
+      for (let k = 0; k < 5; k++) { const y = 40 + k * 92; c.fillRect(624, y + 84, 312, 10);
+        let x = 642;
+        while (x < 912) { const w = 9 + R() * 15, h = 46 + R() * 32, tilt = R() < 0.08; const col = hsl(R() * 360, 30 + R() * 35, 26 + R() * 22);
+          c.save(); c.translate(x, y + 84); if (tilt) c.rotate(-0.18); c.fillStyle = col; c.fillRect(0, -h, w, h);
+          c.fillStyle = 'rgba(255,255,255,0.18)'; c.fillRect(1, -h + 8, w - 2, 2); c.fillRect(1, -14, w - 2, 2); c.fillStyle = 'rgba(0,0,0,0.25)'; c.fillRect(w - 2, -h, 2, h); c.restore();
+          x += w + (tilt ? 8 : 1); if (R() < 0.1) { c.fillStyle = hsl(30 + R() * 160, 30, 55); ell(c, x + 12, y + 70, 10, 14); c.fill(); x += 28; } }
+        c.fillStyle = '#6b4428'; }
+      c.fillStyle = lg(c, 0, 470, 0, H, [[0, '#2a1a12'], [1, '#1a100b']]); c.fillRect(0, 474, W, 66);
+    } },
+    { name: 'girlanda lampek', off: 3, lights: [], draw(c, L) {
+      for (let j = 0; j < 3; j++) {
+        const y0 = 34 + j * 58, sag = 46 + j * 10, yy = x => y0 + sag * (1 - Math.pow((x - 480) / 540, 2));
+        c.strokeStyle = 'rgba(25,18,12,0.9)'; c.lineWidth = 1.6; c.beginPath(); for (let x = -20; x <= 980; x += 10) x < -10 ? c.moveTo(x, yy(x)) : c.lineTo(x, yy(x)); c.stroke();
+        for (let x = -10 + j * 15; x < 980; x += 44) { const y = yy(x) + 5; c.fillStyle = '#6b5636'; ell(c, x, y, 3.4, 4.2); c.fill(); c.fillStyle = '#2a2016'; c.fillRect(x - 1.5, y - 7, 3, 3); bulb(L, x, y, 2.6, [255, 185, 100], 2.4); }
+      }
+    } },
+    { name: 'roślina i lampa', off: 1.3, lights: [], draw(c, L) {
+      c.fillStyle = lg(c, 60, 0, 220, 0, [[0, '#7a4a30'], [1, '#4b2c1c']]); c.beginPath(); c.moveTo(58, 412); c.lineTo(222, 412); c.lineTo(204, 540); c.lineTo(76, 540); c.fill();
+      c.fillStyle = '#8a5a3c'; c.fillRect(52, 404, 176, 14);
+      const Rp = mulberry32(3);
+      for (let i = 0; i < 26; i++) { const a = -Math.PI / 2 + (Rp() - 0.5) * 2.4, len = 70 + Rp() * 130, bx = 140 + (Rp() - 0.5) * 30, by = 410;
+        const ex = bx + Math.cos(a) * len, ey = by + Math.sin(a) * len;
+        c.strokeStyle = '#2d4a24'; c.lineWidth = 2; c.beginPath(); c.moveTo(bx, by); c.quadraticCurveTo(bx, by - len * 0.4, ex, ey); c.stroke();
+        c.fillStyle = hsl(105 + Rp() * 35, 38 + Rp() * 20, 18 + Rp() * 16); ell(c, ex, ey, 30 + Rp() * 12, 11 + Rp() * 5, a); c.fill();
+        c.strokeStyle = 'rgba(0,0,0,0.25)'; c.lineWidth = 1; c.beginPath(); c.moveTo(ex - Math.cos(a) * 28, ey - Math.sin(a) * 28); c.lineTo(ex + Math.cos(a) * 28, ey + Math.sin(a) * 28); c.stroke(); }
+      // lampa podłogowa
+      c.fillStyle = '#1a1714'; c.fillRect(862, 190, 6, 350); c.fillRect(838, 528, 54, 8);
+      c.fillStyle = lg(c, 0, 120, 0, 196, [[0, '#d9b47a'], [1, '#f6dcae']]); c.beginPath(); c.moveTo(830, 120); c.lineTo(900, 120); c.lineTo(924, 196); c.lineTo(806, 196); c.fill();
+      bulb(L, 865, 200, 15, [255, 200, 130], 0.55); bulb(L, 865, 158, 30, [255, 190, 120], 0.12);
+    } },
+    { name: 'osoba (obiekt główny)', off: 0, subject: true, draw(c) {
+      drawPerson(c, { x: 470, y: 108, s: 166, hairStyle: 'long', hair: '#4a2a17', hairD: '#24130a', hairL: '#6b3f22', skin: '#e3ae8b', skinL: '#f5ccae', skinD: '#b47a5a',
+        clothes: 'sweater', cloth: '#5d7690', clothD: '#2e3d4f', lip: '#a8524c', lipL: '#c46e64', eye: '#3a2412', eyeL: '#7c5531' });
+    } },
+    { name: 'liście na pierwszym planie', off: -0.95, draw(c) {
+      const leaf = (x, y, l, w, a, col) => { c.save(); c.translate(x, y); c.rotate(a); c.fillStyle = col; c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(l * 0.5, -w, l, 0); c.quadraticCurveTo(l * 0.5, w, 0, 0); c.fill(); c.strokeStyle = 'rgba(0,0,0,0.3)'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, 0); c.lineTo(l, 0); c.stroke(); c.restore(); };
+      leaf(-20, 560, 230, 46, -0.75, '#2f5a2a'); leaf(-30, 520, 200, 40, -0.35, '#3c6e33'); leaf(10, 570, 180, 36, -1.15, '#24481f'); leaf(40, 580, 150, 32, -0.55, '#4b7f3a');
+      leaf(990, 330, 170, 34, 3.5, '#2c5426'); leaf(985, 400, 150, 30, 2.9, '#376630');
+    } },
+  ];
+}
+
+/* ===================== SCENA: KRAJOBRAZ ===================== */
+function buildLandscape() {
+  const R = mulberry32(21);
+  return [
+    { name: 'niebo', off: Infinity, lights: [], draw(c, L) {
+      c.fillStyle = lg(c, 0, 0, 0, 330, [[0, '#3f7fcf'], [0.6, '#8fbfee'], [1, '#d6ebfb']]); c.fillRect(0, 0, W, H);
+      c.fillStyle = rg(c, 760, 100, 10, 760, 100, 260, [[0, 'rgba(255,250,225,0.85)'], [0.25, 'rgba(255,245,215,0.3)'], [1, 'rgba(255,245,215,0)']]); c.fillRect(0, 0, W, H);
+      c.fillStyle = '#fffbe8'; ell(c, 760, 100, 24, 24); c.fill(); bulb(L, 760, 100, 24, [255, 250, 230], 1);
+      for (let k = 0; k < 7; k++) { const cx = R() * W, cy = 40 + R() * 150, sc = 0.6 + R() * 0.9;
+        for (let j = 0; j < 9; j++) { c.fillStyle = `rgba(255,255,255,${0.5 + R() * 0.35})`; ell(c, cx + (R() - 0.5) * 140 * sc, cy + (R() - 0.5) * 22 * sc, (30 + R() * 34) * sc, (14 + R() * 12) * sc); c.fill(); }
+        c.fillStyle = 'rgba(160,180,210,0.35)'; ell(c, cx, cy + 14 * sc, 80 * sc, 9 * sc); c.fill(); }
+    } },
+    { name: 'góry', off: 3000, draw(c) {
+      const ridge = (base, amp, col, seed, snow) => { const r = mulberry32(seed); const pts = []; let y = base; for (let x = -20; x <= 980; x += 20) { y = base - amp * (0.5 + 0.5 * Math.sin(x / 90 + seed)) - r() * amp * 0.5; pts.push([x, y]); }
+        c.fillStyle = col; c.beginPath(); c.moveTo(-20, 400); pts.forEach(p => c.lineTo(p[0], p[1])); c.lineTo(980, 400); c.fill();
+        if (snow) { c.fillStyle = 'rgba(255,255,255,0.85)'; pts.forEach((p, i) => { if (p[1] < base - amp * 0.95) { c.beginPath(); c.moveTo(p[0] - 18, p[1] + 20); c.lineTo(p[0], p[1]); c.lineTo(p[0] + 18, p[1] + 22); c.lineTo(p[0] + 6, p[1] + 14); c.fill(); } }); } };
+      ridge(250, 80, '#9db7d3', 4, true); ridge(285, 60, '#7d9cc0', 9, true);
+      c.fillStyle = lg(c, 0, 220, 0, 320, [[0, 'rgba(220,235,250,0)'], [1, 'rgba(220,235,250,0.55)']]); c.fillRect(0, 200, W, 140);
+    } },
+    { name: 'wzgórza z lasem', off: 400, draw(c) {
+      c.fillStyle = '#4a7a42'; c.beginPath(); c.moveTo(-10, 360); for (let x = -10; x <= 970; x += 10) c.lineTo(x, 300 - 26 * Math.sin(x / 130) - 12 * Math.sin(x / 47)); c.lineTo(970, 360); c.fill();
+      for (let i = 0; i < 260; i++) { const x = R() * W, yb = 300 - 26 * Math.sin(x / 130) - 12 * Math.sin(x / 47) + 4 + R() * 40, h = 14 + R() * 18;
+        c.fillStyle = hsl(120 + R() * 30, 30 + R() * 15, 16 + R() * 10); c.beginPath(); c.moveTo(x, yb - h); c.lineTo(x + h * 0.32, yb); c.lineTo(x - h * 0.32, yb); c.fill(); }
+      c.fillStyle = lg(c, 0, 270, 0, 350, [[0, 'rgba(200,220,240,0.18)'], [1, 'rgba(200,220,240,0)']]); c.fillRect(0, 260, W, 100);
+    } },
+    { name: 'jezioro i łąka', off: 60, draw(c) {
+      c.fillStyle = lg(c, 0, 336, 0, 372, [[0, '#7fa9d6'], [1, '#4f7fae']]); c.fillRect(0, 336, W, 38);
+      c.strokeStyle = 'rgba(255,255,255,0.45)'; c.lineWidth = 1; for (let i = 0; i < 70; i++) { const x = R() * W, y = 340 + R() * 30; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 8 + R() * 22, y); c.stroke(); }
+      c.fillStyle = lg(c, 0, 368, 0, H, [[0, '#7aa34a'], [1, '#4c7a2c']]); c.beginPath(); c.moveTo(0, 372); c.quadraticCurveTo(480, 362, W, 376); c.lineTo(W, H); c.lineTo(0, H); c.fill();
+      for (let i = 0; i < 900; i++) { const y = 372 + Math.pow(R(), 1.4) * 168, x = R() * W, s = 0.5 + (y - 372) / 60; c.fillStyle = R() < 0.08 ? (R() < 0.5 ? '#f3e16b' : '#f1f1f1') : hsl(85 + R() * 25, 40, 22 + R() * 18); c.fillRect(x, y, s * 1.6, s * 1.6); }
+      c.strokeStyle = '#b79e6e'; c.lineWidth = 12; c.beginPath(); c.moveTo(560, 375); c.quadraticCurveTo(600, 440, 520, 540); c.stroke();
+    } },
+    { name: 'płot (obiekt główny)', off: 0, subject: true, draw(c) {
+      const post = (x, top) => { c.fillStyle = lg(c, x - 11, 0, x + 11, 0, [[0, '#8a6844'], [0.5, '#a07d55'], [1, '#5e4528']]); c.fillRect(x - 11, top, 22, 470 - top); c.fillStyle = '#6b5032'; c.beginPath(); c.moveTo(x - 11, top); c.lineTo(x, top - 9); c.lineTo(x + 11, top); c.fill();
+        c.strokeStyle = 'rgba(60,40,20,0.5)'; c.lineWidth = 1; for (let k = 0; k < 5; k++) { c.beginPath(); c.moveTo(x - 7 + k * 3.5, top + 6); c.lineTo(x - 7 + k * 3.5, 466); c.stroke(); } };
+      const rail = (x0, y0, x1, y1) => { c.strokeStyle = '#7a5a38'; c.lineWidth = 12; c.lineCap = 'butt'; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke(); c.strokeStyle = 'rgba(255,230,190,0.25)'; c.lineWidth = 2; c.beginPath(); c.moveTo(x0, y0 - 4); c.lineTo(x1, y1 - 4); c.stroke(); };
+      rail(330, 350, 960, 336); rail(330, 410, 960, 398);
+      [350, 520, 690, 860].forEach((x, i) => post(x, 318 - i * 4));
+      c.fillStyle = 'rgba(30,40,20,0.35)'; ell(c, 600, 472, 300, 8); c.fill();
+      c.fillStyle = '#7d7f80'; ell(c, 250, 470, 60, 26); c.fill(); c.fillStyle = '#9a9c9c'; ell(c, 238, 460, 40, 16); c.fill();
+    } },
+    { name: 'trawa na pierwszym planie', off: -3.4, draw(c) {
+      const r = mulberry32(5);
+      for (let i = 0; i < 240; i++) { const x = r() * W, y = 545, h = 40 + r() * (x < 220 ? 190 : 90), bend = (r() - 0.5) * 60;
+        c.strokeStyle = hsl(80 + r() * 30, 45, 22 + r() * 20); c.lineWidth = 2 + r() * 3; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + bend * 0.3, y - h * 0.6, x + bend, y - h); c.stroke(); }
+      for (let i = 0; i < 26; i++) { const x = r() * W, y = 545 - 40 - r() * 70; c.fillStyle = r() < 0.5 ? '#b56be0' : '#f4cf3a'; for (let p = 0; p < 5; p++) { ell(c, x + Math.cos(p * 1.26) * 6, y + Math.sin(p * 1.26) * 6, 5, 5); c.fill(); } c.fillStyle = '#5a3a10'; ell(c, x, y, 3, 3); c.fill(); }
+    } },
+  ];
+}
+
+/* ===================== SCENA: STUDIO TV ===================== */
+function buildStudio() {
+  const R = mulberry32(31);
+  return [
+    { name: 'ściana LED', off: 5, lights: [], emit: true, draw(c, L, e) {
+      c.fillStyle = '#06080c'; c.fillRect(0, 0, W, H);
+      c.fillStyle = lg(c, 0, 40, 0, 340, [[0, '#0b2c6e'], [1, '#1252a8']]); c.fillRect(110, 40, 740, 300);
+      c.fillStyle = 'rgba(120,200,255,0.18)'; for (let i = 0; i < 16; i++) { const x = 110 + i * 46, h = 60 + R() * 140; c.fillRect(x, 340 - h, 40, h); }
+      c.fillStyle = 'rgba(160,220,255,0.10)'; for (let i = 0; i < 12; i++) c.fillRect(110 + R() * 700, 60 + R() * 180, 120, 3);
+      c.strokeStyle = 'rgba(0,0,0,0.35)'; c.lineWidth = 1; for (let x = 110; x <= 850; x += 37) { c.beginPath(); c.moveTo(x, 40); c.lineTo(x, 340); c.stroke(); } for (let y = 40; y <= 340; y += 37) { c.beginPath(); c.moveTo(110, y); c.lineTo(850, y); c.stroke(); }
+      c.fillStyle = '#e8f3ff'; c.font = '800 54px Segoe UI, Arial, sans-serif'; c.fillText('TV KADR', 140, 112);
+      c.font = '600 22px Segoe UI, Arial, sans-serif'; c.fillStyle = '#9fd3ff'; c.fillText('WIADOMOŚCI · 19:30', 144, 144);
+      c.fillStyle = '#f5a524'; c.fillRect(140, 158, 220, 5);
+      // podłoga
+      c.fillStyle = lg(c, 0, 350, 0, H, [[0, '#14171d'], [1, '#07080a']]); c.fillRect(0, 350, W, H - 350);
+      c.fillStyle = 'rgba(40,110,220,0.18)'; c.fillRect(110, 352, 740, 60);
+      // listwy świetlne (emisja)
+      for (const x of [50, 896]) { c.fillStyle = '#1a2533'; c.fillRect(x, 30, 16, 330); }
+      e.fillStyle = 'rgba(90,200,255,0.55)'; for (const x of [50, 896]) e.fillRect(x + 4, 34, 8, 322);
+      e.fillStyle = 'rgba(230,245,255,0.5)'; e.font = '800 54px Segoe UI, Arial, sans-serif'; e.fillText('TV KADR', 140, 112);
+      e.fillStyle = 'rgba(245,165,36,0.6)'; e.fillRect(140, 158, 220, 5);
+    } },
+    { name: 'oświetlenie (lampy na kratownicy)', off: 2.5, lights: [], draw(c, L) {
+      c.fillStyle = '#2a2e35'; c.fillRect(0, 10, W, 9); c.fillRect(0, 28, W, 5);
+      c.strokeStyle = '#2a2e35'; c.lineWidth = 2; for (let x = 0; x < W; x += 24) { c.beginPath(); c.moveTo(x, 18); c.lineTo(x + 12, 29); c.lineTo(x + 24, 18); c.stroke(); }
+      for (const x of [170, 360, 600, 790]) { c.fillStyle = '#15171b'; c.fillRect(x - 3, 30, 6, 16); rr(c, x - 26, 44, 52, 38, 8); c.fill();
+        c.fillStyle = '#0d0e10'; c.beginPath(); c.moveTo(x - 30, 76); c.lineTo(x - 42, 98); c.lineTo(x - 22, 82); c.fill(); c.beginPath(); c.moveTo(x + 30, 76); c.lineTo(x + 42, 98); c.lineTo(x + 22, 82); c.fill();
+        c.fillStyle = '#3a3220'; ell(c, x, 82, 17, 8); c.fill(); bulb(L, x, 84, 9, [255, 246, 228], 1); bulb(L, x, 84, 26, [255, 240, 215], 0.13); }
+    } },
+    { name: 'prezenter i stół (obiekt główny)', off: 0, subject: true, lights: [], emit: true, draw(c, L, e) {
+      drawPerson(c, { x: 480, y: 128, s: 112, hairStyle: 'short', hair: '#2a1d14', hairD: '#120b07', hairL: '#3e2b1d', skin: '#d9a07c', skinL: '#efc2a2', skinD: '#a86f50',
+        clothes: 'suit', cloth: '#1f2a3c', clothD: '#121a26', tie: '#8a1f2b', lip: '#9a5048', lipL: '#b0645a', eye: '#2a1a0e', eyeL: '#5e4127', brow: '#1c120a' });
+      c.fillStyle = lg(c, 0, 392, 0, 410, [[0, '#e9edf2'], [1, '#aeb6c1']]); c.beginPath(); c.moveTo(140, 404); c.quadraticCurveTo(480, 380, 820, 404); c.lineTo(820, 414); c.quadraticCurveTo(480, 392, 140, 414); c.fill();
+      c.fillStyle = lg(c, 0, 410, 0, H, [[0, '#1c2433'], [1, '#0a0d13']]); c.beginPath(); c.moveTo(140, 414); c.quadraticCurveTo(480, 392, 820, 414); c.lineTo(790, 540); c.lineTo(170, 540); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.06)'; c.beginPath(); c.moveTo(200, 420); c.lineTo(260, 420); c.lineTo(230, 540); c.lineTo(190, 540); c.fill();
+      c.fillStyle = '#0e2752'; c.fillRect(380, 450, 200, 44); c.fillStyle = '#d7ecff'; c.font = '700 22px Segoe UI, Arial, sans-serif'; c.textAlign = 'center'; c.fillText('TV KADR', 480, 480); c.textAlign = 'left';
+      e.fillStyle = 'rgba(70,170,255,0.6)'; e.beginPath(); e.moveTo(150, 418); e.quadraticCurveTo(480, 396, 810, 418); e.lineTo(810, 422); e.quadraticCurveTo(480, 400, 150, 422); e.fill();
+      c.fillStyle = '#d9dde2'; c.save(); c.translate(560, 388); c.rotate(-0.08); c.fillRect(0, 0, 90, 10); c.restore();
+      c.fillStyle = '#20242b'; c.fillRect(300, 382, 70, 12);
+    } },
+    { name: 'kamera studyjna (pierwszy plan)', off: -1.7, lights: [], draw(c, L) {
+      c.fillStyle = '#121418'; rr(c, -40, 250, 200, 150, 12); c.fill();
+      c.fillStyle = '#1b1e24'; rr(c, -30, 200, 130, 60, 8); c.fill();
+      c.fillStyle = '#090a0c'; c.fillRect(80, 290, 120, 70); c.fillStyle = '#23272e'; c.fillRect(90, 296, 100, 6);
+      c.fillStyle = '#0c0d10'; c.fillRect(40, 400, 30, 140); c.beginPath(); c.moveTo(55, 520); c.lineTo(-30, 540); c.lineTo(140, 540); c.fill();
+      c.fillStyle = '#2b0d0d'; ell(c, 20, 214, 7, 7); c.fill(); bulb(L, 20, 214, 5, [255, 40, 30], 1);
+      c.fillStyle = '#d6d9de'; c.font = '600 11px Segoe UI, Arial'; c.fillText('CAM 2', 0, 244);
+    } },
+  ];
+}
+
+/* ===================== SCENA: NOCNE MIASTO ===================== */
+function buildNight() {
+  const R = mulberry32(41);
+  return [
+    { name: 'niebo', off: Infinity, lights: [], draw(c, L) {
+      c.fillStyle = lg(c, 0, 0, 0, 340, [[0, '#04060d'], [0.6, '#121634'], [1, '#33254a']]); c.fillRect(0, 0, W, H);
+      for (let i = 0; i < 90; i++) { c.fillStyle = `rgba(255,255,255,${0.15 + R() * 0.5})`; c.fillRect(R() * W, R() * 180, 1.2, 1.2); }
+      c.fillStyle = '#e9e4cf'; ell(c, 832, 78, 20, 20); c.fill(); c.fillStyle = 'rgba(0,0,0,0.15)'; ell(c, 826, 72, 5, 5); c.fill(); bulb(L, 832, 78, 20, [235, 230, 210], 0.35);
+    } },
+    { name: 'panorama miasta', off: 300, lights: [], emit: true, draw(c, L, e) {
+      let x = -10;
+      while (x < W) { const w = 30 + R() * 60, h = 70 + R() * 170, y = 340 - h; c.fillStyle = hsl(232, 25, 6 + R() * 6); c.fillRect(x, y, w, h);
+        for (let wy = y + 6; wy < 334; wy += 9) for (let wx = x + 4; wx < x + w - 4; wx += 7) { c.fillStyle = 'rgba(40,45,70,0.8)'; c.fillRect(wx, wy, 3, 4); if (R() < 0.3) { e.fillStyle = R() < 0.7 ? 'rgba(255,200,120,0.3)' : 'rgba(150,200,255,0.28)'; e.fillRect(wx, wy, 3, 4); } }
+        if (R() < 0.15) bulb(L, x + w / 2, y - 2, 1.8, [255, 50, 40], 0.9);
+        x += w + 2; }
+      c.fillStyle = '#0a0c18'; c.fillRect(612, 70, 6, 200); c.fillRect(600, 150, 30, 14); bulb(L, 615, 70, 2.5, [255, 40, 40], 1);
+    } },
+    { name: 'ulica: kamienice i neony', off: 30, lights: [], emit: true, draw(c, L, e) {
+      c.fillStyle = '#0b0c14'; c.beginPath(); c.moveTo(0, 0); c.lineTo(250, 120); c.lineTo(250, 400); c.lineTo(0, 470); c.fill();
+      c.beginPath(); c.moveTo(W, 0); c.lineTo(720, 120); c.lineTo(720, 400); c.lineTo(W, 470); c.fill();
+      for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) { const x0 = 20 + i * 38, sk = (x0 / 250);
+        const y0 = 40 + sk * 100 + j * 70, h = 40 - sk * 10; c.fillStyle = '#151827'; c.fillRect(x0, y0, 22, h); if (R() < 0.35) { c.fillStyle = '#6b5236'; c.fillRect(x0, y0, 22, h); e.fillStyle = 'rgba(255,180,110,0.12)'; e.fillRect(x0, y0, 22, h); }
+        const xr = W - x0 - 22; c.fillStyle = '#151827'; c.fillRect(xr, y0, 22, h); if (R() < 0.35) { c.fillStyle = '#6b5236'; c.fillRect(xr, y0, 22, h); e.fillStyle = 'rgba(255,190,120,0.12)'; e.fillRect(xr, y0, 22, h); } }
+      // neony
+      c.fillStyle = '#0d1a10'; c.fillRect(60, 300, 130, 40); e.fillStyle = 'rgba(60,255,140,0.9)'; e.font = '800 26px Segoe UI, Arial'; e.fillText('APTEKA', 68, 330);
+      c.fillStyle = '#3cff8c'; c.font = '800 26px Segoe UI, Arial'; c.fillText('APTEKA', 68, 330);
+      e.fillRect(205, 280, 30, 10); e.fillRect(215, 270, 10, 30); c.fillStyle = '#3cff8c'; c.fillRect(205, 280, 30, 10); c.fillRect(215, 270, 10, 30);
+      c.fillStyle = '#1a0a12'; c.fillRect(800, 150, 46, 170); e.fillStyle = 'rgba(255,60,90,0.95)'; e.font = '800 30px Segoe UI, Arial'; c.fillStyle = '#ff4d7a'; c.font = '800 30px Segoe UI, Arial';
+      'HOTEL'.split('').forEach((ch, i) => { e.fillText(ch, 811, 186 + i * 31); c.fillText(ch, 811, 186 + i * 31); });
+      e.fillStyle = 'rgba(255,120,220,0.85)'; e.font = 'italic 700 22px Georgia, serif'; e.fillText('Kawiarnia', 735, 376); c.fillStyle = '#ff8ae0'; c.font = 'italic 700 22px Georgia, serif'; c.fillText('Kawiarnia', 735, 376);
+      // witryny
+      c.fillStyle = '#2a2016'; c.fillRect(30, 380, 190, 70); c.fillStyle = '#7a5a3a'; c.fillRect(36, 386, 178, 58); e.fillStyle = 'rgba(255,190,120,0.16)'; e.fillRect(36, 386, 178, 58);
+      c.fillStyle = '#2a2016'; c.fillRect(740, 386, 190, 64); c.fillStyle = '#7a5a3a'; c.fillRect(746, 392, 178, 52); e.fillStyle = 'rgba(255,170,110,0.16)'; e.fillRect(746, 392, 178, 52);
+      // ulica w głębi
+      c.fillStyle = '#07080c'; c.fillRect(250, 330, 470, 80);
+      for (let i = 0; i < 6; i++) { const x = 330 + R() * 300, y = 384 + R() * 14; bulb(L, x, y, 2.4, [255, 30, 30], 0.9); bulb(L, x + 18, y, 2.4, [255, 30, 30], 0.9); }
+      for (let i = 0; i < 4; i++) { const x = 300 + R() * 360, y = 392 + R() * 10; bulb(L, x, y, 2.6, [255, 245, 220], 1); bulb(L, x + 20, y, 2.6, [255, 245, 220], 1); }
+      bulb(L, 470, 346, 3, [60, 255, 90], 1); bulb(L, 470, 336, 3, [70, 20, 20], 0.4);
+    } },
+    { name: 'latarnie w głębi', off: 14, lights: [], draw(c, L) {
+      for (const [x, top, sc] of [[300, 210, 0.6], [670, 214, 0.6], [400, 250, 0.4], [570, 252, 0.4]]) {
+        c.fillStyle = '#0a0b10'; c.fillRect(x - 2 * sc, top, 4 * sc + 1, 400 - top); c.beginPath(); c.moveTo(x - 14 * sc, top); c.lineTo(x + 14 * sc, top); c.lineTo(x + 8 * sc, top - 10 * sc); c.lineTo(x - 8 * sc, top - 10 * sc); c.fill();
+        bulb(L, x, top + 3, 6 * sc, [255, 200, 130], 1); bulb(L, x, top + 3, 30 * sc, [255, 190, 120], 0.12); }
+    } },
+    { name: 'mokra jezdnia', off: 3, lights: [], emit: true, draw(c, L, e) {
+      c.fillStyle = lg(c, 0, 400, 0, H, [[0, '#0b0c12'], [1, '#13151c']]); c.beginPath(); c.moveTo(0, 470); c.lineTo(250, 400); c.lineTo(720, 400); c.lineTo(W, 470); c.lineTo(W, H); c.lineTo(0, H); c.fill();
+      c.fillStyle = '#191b22'; c.beginPath(); c.moveTo(0, 470); c.lineTo(250, 404); c.lineTo(250, 410); c.lineTo(0, 482); c.fill();
+      const refl = (x, w, col, a) => { e.fillStyle = lg(e, 0, 410, 0, H, [[0, `rgba(${col},${a})`], [1, `rgba(${col},0)`]]); e.fillRect(x - w / 2, 410, w, 130); };
+      refl(300, 6, '255,200,130', 0.35); refl(670, 6, '255,200,130', 0.35); refl(125, 50, '60,255,140', 0.25); refl(823, 26, '255,60,90', 0.3); refl(470, 4, '60,255,90', 0.2);
+      c.strokeStyle = 'rgba(200,200,210,0.25)'; c.lineWidth = 3; c.setLineDash([26, 30]); c.beginPath(); c.moveTo(485, 404); c.lineTo(540, 540); c.stroke(); c.setLineDash([]);
+    } },
+    { name: 'osoba z parasolem (obiekt główny)', off: 0, subject: true, draw(c) {
+      drawPerson(c, { x: 640, y: 232, s: 92, hairStyle: 'long', hair: '#1c120c', hairD: '#0a0605', hairL: '#2c1d12', skin: '#a8765c', skinL: '#d79d78', skinD: '#5c3b2b',
+        clothes: 'coat', cloth: '#262b3a', clothD: '#11141c', lip: '#7a3a35', lipL: '#8f4840', eye: '#120a05', eyeL: '#3a2414' });
+      c.strokeStyle = '#16181f'; c.lineWidth = 4; c.beginPath(); c.moveTo(700, 170); c.lineTo(712, 420); c.stroke();
+      c.fillStyle = lg(c, 0, 120, 0, 190, [[0, '#262033'], [1, '#14111c']]); c.beginPath(); c.moveTo(560, 195); c.quadraticCurveTo(700, 70, 840, 195); c.fill();
+      c.fillStyle = 'rgba(255,200,140,0.25)'; c.beginPath(); c.moveTo(600, 160); c.quadraticCurveTo(700, 92, 800, 160); c.quadraticCurveTo(700, 104, 600, 160); c.fill();
+      c.strokeStyle = '#0a0a0e'; c.lineWidth = 2; for (let i = 0; i < 7; i++) { c.beginPath(); c.moveTo(700, 128); c.lineTo(560 + i * 46.7, 195); c.stroke(); }
+    } },
+  ];
+}
+
+/* ===================== SCENA: RUCH ===================== */
+function buildMotion() {
+  const R = mulberry32(51);
+  // sprite'y samochodu: nadwozie i koło (obracane osobno)
+  const Lc = 4.4 * (W / (8 * 36 / 35)), wr = 0.33 * (W / (8 * 36 / 35));
+  const body = mk(Math.ceil(Lc) + 40, 220), b = body.getContext('2d');
+  { const c = b, L = Lc, gy = 200, ox = 20;
+    c.fillStyle = 'rgba(0,0,0,0.45)'; ell(c, ox + L / 2, gy + 6, L * 0.52, 9); c.fill();
+    const y1 = gy - 0.075 * L, y2 = gy - 0.265 * L, yr = gy - 0.4 * L;
+    c.fillStyle = lg(c, 0, yr, 0, gy, [[0, '#ff5a4a'], [0.45, '#d1271d'], [0.46, '#b31d15'], [1, '#6e0f0b']]);
+    c.beginPath(); c.moveTo(ox + 0.02 * L, y1); c.quadraticCurveTo(ox, y2 + 6, ox + 0.04 * L, y2);
+    c.lineTo(ox + 0.24 * L, y2 - 4); c.quadraticCurveTo(ox + 0.32 * L, yr, ox + 0.42 * L, yr); c.lineTo(ox + 0.63 * L, yr);
+    c.quadraticCurveTo(ox + 0.72 * L, yr + 2, ox + 0.8 * L, y2 - 2); c.quadraticCurveTo(ox + 0.97 * L, y2 + 6, ox + L, y2 + 26); c.quadraticCurveTo(ox + 1.01 * L, y1 - 4, ox + 0.98 * L, y1); c.closePath(); c.fill();
+    c.fillStyle = lg(c, 0, yr, 0, y2, [[0, '#9fc3e0'], [1, '#2a3b4f']]);
+    c.beginPath(); c.moveTo(ox + 0.27 * L, y2 - 6); c.quadraticCurveTo(ox + 0.33 * L, yr + 8, ox + 0.43 * L, yr + 8); c.lineTo(ox + 0.5 * L, yr + 8); c.lineTo(ox + 0.5 * L, y2 - 6); c.fill();
+    c.beginPath(); c.moveTo(ox + 0.52 * L, y2 - 6); c.lineTo(ox + 0.52 * L, yr + 8); c.lineTo(ox + 0.62 * L, yr + 8); c.quadraticCurveTo(ox + 0.7 * L, yr + 10, ox + 0.76 * L, y2 - 6); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.35)'; c.beginPath(); c.moveTo(ox + 0.36 * L, yr + 10); c.lineTo(ox + 0.4 * L, yr + 10); c.lineTo(ox + 0.33 * L, y2 - 8); c.lineTo(ox + 0.29 * L, y2 - 8); c.fill();
+    c.strokeStyle = 'rgba(60,5,5,0.7)'; c.lineWidth = 2; c.beginPath(); c.moveTo(ox + 0.51 * L, y2 - 4); c.lineTo(ox + 0.51 * L, y1 - 4); c.moveTo(ox + 0.27 * L, y2); c.lineTo(ox + 0.27 * L, y1 - 6); c.moveTo(ox + 0.77 * L, y2); c.lineTo(ox + 0.75 * L, y1 - 6); c.stroke();
+    c.fillStyle = '#e8c9c5'; c.fillRect(ox + 0.42 * L, y2 + 12, 22, 5); c.fillRect(ox + 0.66 * L, y2 + 12, 22, 5);
+    c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(ox + 0.05 * L, y2 + 4, 0.9 * L, 3);
+    c.fillStyle = '#fff4c8'; rr(c, ox + 0.955 * L, y2 + 14, 0.04 * L, 14, 5); c.fill();
+    c.fillStyle = '#ff2a1a'; rr(c, ox + 0.005 * L, y2 + 8, 0.03 * L, 16, 4); c.fill();
+    c.fillStyle = '#1a1a1a'; c.fillRect(ox + 0.01 * L, y1 - 6, 0.98 * L, 8);
+    for (const wx of [0.2, 0.8]) { c.fillStyle = '#140707'; ell(c, ox + wx * L, gy - wr, wr * 1.18, wr * 1.12); c.fill(); }
+  }
+  const wheel = mk(Math.ceil(wr * 2) + 4, Math.ceil(wr * 2) + 4), w = wheel.getContext('2d');
+  { const c = w, r = wr, cx = r + 2;
+    c.fillStyle = '#111'; ell(c, cx, cx, r, r); c.fill(); c.fillStyle = '#2b2b2b'; ell(c, cx, cx, r * 0.9, r * 0.9); c.fill();
+    c.fillStyle = lg(c, 0, 0, 2 * r, 2 * r, [[0, '#e9edf2'], [1, '#8d96a1']]); ell(c, cx, cx, r * 0.62, r * 0.62); c.fill();
+    c.fillStyle = '#3a3f46'; for (let i = 0; i < 5; i++) { c.save(); c.translate(cx, cx); c.rotate(i * TAU / 5 + TAU / 10); c.beginPath(); c.moveTo(r * 0.12, -r * 0.08); c.lineTo(r * 0.56, -r * 0.2); c.lineTo(r * 0.56, r * 0.2); c.lineTo(r * 0.12, r * 0.08); c.fill(); c.restore(); }
+    c.fillStyle = '#c9ced5'; ell(c, cx, cx, r * 0.14, r * 0.14); c.fill(); c.fillStyle = '#e8261d'; ell(c, cx, cx, r * 0.05, r * 0.05); c.fill();
+    c.fillStyle = '#f0c419'; ell(c, cx + r * 0.75, cx, r * 0.06, r * 0.06); c.fill(); // znacznik na oponie — ułatwia ocenę obrotu
+  }
+  const GY = 470, period = W + Lc + 260;
+  const carX = (t, vpx) => ((t * vpx) % period + period) % period - Lc - 120;
+  return [
+    { name: 'kamienice w tle', off: 14, draw(c) {
+      c.fillStyle = lg(c, 0, 0, 0, 120, [[0, '#7fb3e8'], [1, '#cfe5f7']]); c.fillRect(0, 0, W, H);
+      const cols = ['#e8c99a', '#c9d7c0', '#e3b2a0', '#d8d0e8', '#f0dca8', '#b9cfe0'];
+      let x = -30; let k = 0;
+      while (x < W) { const w = 170 + R() * 60, top = 30 + R() * 50, col = cols[k++ % cols.length];
+        c.fillStyle = col; c.fillRect(x, top, w, 330 - top); c.fillStyle = 'rgba(0,0,0,0.12)'; c.fillRect(x, top, w, 10); c.fillRect(x + w - 4, top, 4, 330 - top);
+        for (let wy = top + 30; wy < 270; wy += 62) for (let wx = x + 22; wx < x + w - 40; wx += 48) {
+          c.fillStyle = '#f7f2e8'; c.fillRect(wx - 4, wy - 4, 30, 46); c.fillStyle = lg(c, 0, wy, 0, wy + 38, [[0, '#4b6683'], [1, '#22324a']]); c.fillRect(wx, wy, 22, 38);
+          c.fillStyle = '#f7f2e8'; c.fillRect(wx + 10, wy, 2, 38); c.fillRect(wx, wy + 14, 22, 2); c.fillStyle = 'rgba(0,0,0,0.2)'; c.fillRect(wx - 6, wy + 42, 34, 4); }
+        c.fillStyle = '#3a2d26'; c.fillRect(x + 20, 280, 56, 50); c.fillStyle = '#7a3324'; c.fillRect(x + w - 90, 282, 60, 48);
+        x += w; }
+      c.fillStyle = '#b6aea4'; c.fillRect(0, 330, W, 30);
+      for (let i = 0; i < 4; i++) { const tx = 80 + i * 260 + R() * 40; c.fillStyle = '#5b4632'; c.fillRect(tx - 4, 230, 8, 110); for (let j = 0; j < 14; j++) { c.fillStyle = hsl(95 + R() * 30, 35, 26 + R() * 14); ell(c, tx + (R() - 0.5) * 80, 200 + (R() - 0.5) * 70, 26 + R() * 12, 22 + R() * 10); c.fill(); } }
+    } },
+    { name: 'jezdnia', off: 0, draw(c) {
+      c.fillStyle = '#8f8a84'; c.fillRect(0, 356, W, 14); c.fillStyle = '#6a6560'; c.fillRect(0, 368, W, 4);
+      c.fillStyle = lg(c, 0, 372, 0, H, [[0, '#4a4d52'], [1, '#2c2e32']]); c.fillRect(0, 372, W, H - 372);
+      for (let i = 0; i < 1600; i++) { c.fillStyle = `rgba(255,255,255,${R() * 0.07})`; c.fillRect(R() * W, 372 + R() * 168, 2, 2); }
+      c.fillStyle = '#e9e6dc'; for (let x = 0; x < W; x += 110) c.fillRect(x, 506, 60, 7);
+      c.fillStyle = 'rgba(255,255,255,0.5)'; for (let x = 0; x < W; x += 60) c.fillRect(x, 372, 2, 6);  // podziałka co ~0,5 m ułatwia ocenę przesunięcia
+    } },
+    { name: 'samochód (obiekt główny)', off: 0, subject: true, dynamic: true, Lc, GY,
+      bbox(t, vpx) { const x = carX(t, vpx); return [x, GY - 0.42 * Lc, Lc, 0.42 * Lc + 10]; },
+      drawAt(c, t, vpx) {
+        const x = carX(t, vpx); if (x > W + 40 || x < -Lc - 60) return;
+        c.drawImage(body, x - 20, GY - 200);
+        const rot = (t * vpx) / wr;
+        for (const wx of [0.2, 0.8]) { c.save(); c.translate(x + wx * Lc, GY - wr); c.rotate(rot); c.drawImage(wheel, -wr - 2, -wr - 2); c.restore(); }
+      } },
+    { name: 'latarnia (pierwszy plan)', off: -4.5, draw(c) {
+      c.fillStyle = lg(c, 46, 0, 76, 0, [[0, '#1d3a2e'], [0.5, '#2f5a47'], [1, '#14281f']]); c.fillRect(46, 0, 30, H);
+      c.fillStyle = '#14281f'; c.fillRect(38, 470, 46, 70); c.fillRect(42, 120, 38, 10);
+      c.fillStyle = '#f1f1f1'; ell(c, 150, 150, 36, 36); c.fill(); c.fillStyle = '#d62828'; ell(c, 150, 150, 31, 31); c.fill(); c.fillStyle = '#fff'; ell(c, 150, 150, 23, 23); c.fill();
+      c.fillStyle = '#111'; c.font = '800 20px Segoe UI, Arial'; c.textAlign = 'center'; c.fillText('30', 150, 157); c.textAlign = 'left';
+      c.fillStyle = '#556'; c.fillRect(76, 146, 40, 6);
+    } },
+  ];
+}
+
+/* ===================== Rejestr scen ===================== */
+// s0 — odległość obiektu przy ogniskowej f0 na pełnej klatce [m]; def — ustawienia domyślne (dobrane do poprawnej ekspozycji)
+const SCN = {
+  portrait:  { name: 'Portret', icon: 'i-user', s0: 2, f0: 85, build: buildPortrait,
+               def: { ev: 8, iso: 2, f: 6, t: 1/50, fps: 25, nd: 0, foc: 7 },
+               about: 'Osoba 2 m od kamery, girlanda 5 m, ściana 8 m. Najlepsza do obserwacji głębi ostrości i bokeh.' },
+  landscape: { name: 'Krajobraz', icon: 'i-mountain', s0: 5, f0: 24, build: buildLandscape,
+               def: { ev: 14, iso: 2, f: 15, t: 1/50, fps: 25, nd: 3, foc: 2 },
+               about: 'Trawa 1,6 m, płot 5 m, łąka 65 m, las 400 m, góry w nieskończoności.' },
+  studio:    { name: 'Studio TV', icon: 'i-tv', s0: 3, f0: 50, build: buildStudio,
+               def: { ev: 9, iso: 2, f: 9, t: 1/50, fps: 25, nd: 0, foc: 5 },
+               about: 'Prezenter 3 m, lampy 5,5 m, ściana LED 8 m, kamera studyjna 1,3 m.' },
+  motion:    { name: 'Ruch', icon: 'i-car', s0: 8, f0: 35, build: buildMotion, motion: true,
+               def: { ev: 13, iso: 2, f: 12, t: 1/50, fps: 25, nd: 3, foc: 4 },
+               about: 'Samochód jedzie 8 m od kamery. Podziałka przy krawężniku co ok. 0,5 m pomaga ocenić przesunięcie między klatkami.' },
+  night:     { name: 'Nocne miasto', icon: 'i-moon', s0: 4, f0: 35, build: buildNight,
+               def: { ev: 4, iso: 11, f: 3, t: 1/50, fps: 25, nd: 0, foc: 4 },
+               about: 'Słabe światło: ISO, szum i ekspozycja. Latarnie i neony tworzą bokeh przy otwartej przysłonie.' },
+  photo:     { name: 'Własne zdjęcie', icon: 'i-image', s0: 2, f0: 50, build: () => [], photo: true,
+               def: { ev: 10, iso: 0, f: 9, t: 1/60, fps: 25, nd: 0, foc: 5 },
+               about: 'Twoje zdjęcie: ekspozycja i szum są symulowane w pełni; rozmycie tła tylko w przybliżeniu (brak mapy głębi).' },
+};
+const SCN_ORDER = ['portrait', 'landscape', 'studio', 'motion', 'night', 'photo'];
+function sceneLayers(id) {
+  const s = SCN[id];
+  if (!s.layers) {
+    s.layers = s.build();
+    for (const L of s.layers) {
+      if (L.dynamic) continue;
+      L.canvas = mk(W, H);
+      const ectx = L.emit ? (L.emitCanvas = mk(W, H)).getContext('2d') : null;
+      L.lights = L.lights || [];
+      L.draw(L.canvas.getContext('2d'), L, ectx);
+      L.hasLight = !!(L.emit || L.lights.length);
+      L.cache = new Map();
+    }
+    s.hasLights = s.layers.some(L => L.hasLight);
+    s.subjectLayer = s.layers.find(L => L.subject);
+  }
+  return s.layers;
+}
+/* =====================================================================
+   3. RENDER
+   compose():  warstwy od najdalszej do najbliższej; każda rozmyta
+               krążkiem rozmycia (CoC) wynikającym z jej odległości.
+               Światła trafiają do osobnego bufora HDR (bokeh, przesłanianie).
+   processFrame(): potok liniowy — światło na matrycy × 2^L, nasycenie
+               matrycy, wzmocnienie ISO, szum fotonowy + szum odczytu,
+               obcięcie, kodowanie sRGB, zebra, histogram.
+   ===================================================================== */
+const FILTER_OK = (() => { try { const c = mk(4, 4).getContext('2d'); c.filter = 'blur(2px)'; return c.filter === 'blur(2px)'; } catch (e) { return false; } })();
+const PMAX = 112;
+const padC = mk(W + 2 * PMAX, H + 2 * PMAX), padX = padC.getContext('2d');
+const smallC = mk(W, H), smallX = smallC.getContext('2d');
+const baseC = mk(W, H), baseX = baseC.getContext('2d', { willReadFrequently: true });
+const lightC = mk(W, H), lightX = lightC.getContext('2d', { willReadFrequently: true });
+const dynC = mk(W, H), dynX = dynC.getContext('2d'), dyn2C = mk(W, H);
+const maskC = mk(W, H), maskX = maskC.getContext('2d');
+const nrC = mk(W, H), nrX = nrC.getContext('2d');
+const sigOf = D => Math.min(D / 3.2, 40);
+
+function blurTo(src, sigma, dst) {
+  const d = dst.getContext('2d');
+  d.clearRect(0, 0, W, H);
+  if (sigma < 0.35) { d.drawImage(src, 0, 0); return dst; }
+  const p = Math.min(PMAX, Math.ceil(sigma * 2.6) + 2), pw = W + 2 * p, ph = H + 2 * p;
+  padX.clearRect(0, 0, pw, ph);
+  padX.drawImage(src, p, p);
+  // powielenie krawędzi — rozmycie nie "ściemnia" brzegów kadru
+  padX.drawImage(src, 0, 0, 1, H, 0, p, p, H); padX.drawImage(src, W - 1, 0, 1, H, W + p, p, p, H);
+  padX.drawImage(src, 0, 0, W, 1, p, 0, W, p); padX.drawImage(src, 0, H - 1, W, 1, p, H + p, W, p);
+  padX.drawImage(src, 0, 0, 1, 1, 0, 0, p, p); padX.drawImage(src, W - 1, 0, 1, 1, W + p, 0, p, p);
+  padX.drawImage(src, 0, H - 1, 1, 1, 0, H + p, p, p); padX.drawImage(src, W - 1, H - 1, 1, 1, W + p, H + p, p, p);
+  if (FILTER_OK) {
+    d.filter = `blur(${sigma.toFixed(2)}px)`; d.drawImage(padC, 0, 0, pw, ph, -p, -p, pw, ph); d.filter = 'none';
+  } else { // awaryjnie: rozmycie przez zmniejszenie i powiększenie
+    const k = Math.max(1, sigma / 1.1), sw = Math.max(1, Math.round(pw / k)), sh = Math.max(1, Math.round(ph / k));
+    smallC.width = sw; smallC.height = sh; smallX.imageSmoothingQuality = 'high'; smallX.drawImage(padC, 0, 0, pw, ph, 0, 0, sw, sh);
+    d.imageSmoothingQuality = 'high'; d.drawImage(smallC, 0, 0, sw, sh, -p, -p, pw, ph);
+  }
+  return dst;
+}
+
+/* bokeh: punkt światła o promieniu r rozmyty krążkiem D → dysk o promieniu √(r²+(D/2)²);
+   energia zachowana (jasność na jednostkę pola maleje); przy przymkniętej przysłonie — kształt wielokąta (7 listków) */
+function drawLights(x, lights, D, N) {
+  x.globalCompositeOperation = 'lighter';
+  const poly = N > 2.7, nb = 7;
+  for (const l of lights) {
+    const r = l.r, R = Math.sqrt(r * r + D * D / 4), [cr, cg, cb] = l.c;
+    if (R < r * 1.3 + 0.8) {
+      const g = x.createRadialGradient(l.x, l.y, 0, l.x, l.y, R * 2.4);
+      g.addColorStop(0, `rgba(${cr},${cg},${cb},${l.i})`); g.addColorStop(0.38, `rgba(${cr},${cg},${cb},${l.i * 0.9})`);
+      g.addColorStop(0.48, `rgba(${cr},${cg},${cb},${l.i * 0.22})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = g; x.beginPath(); x.arc(l.x, l.y, R * 2.4, 0, TAU); x.fill();
+    } else {
+      const a = Math.min(1, l.i * (r * r) / (R * R) * 1.15);
+      x.beginPath();
+      if (poly) { for (let k = 0; k <= nb; k++) { const an = k * TAU / nb + 0.3, px = l.x + Math.cos(an) * R, py = l.y + Math.sin(an) * R; k ? x.lineTo(px, py) : x.moveTo(px, py); } }
+      else x.arc(l.x, l.y, R, 0, TAU);
+      const g = x.createRadialGradient(l.x, l.y, 0, l.x, l.y, R);
+      g.addColorStop(0, `rgba(${cr},${cg},${cb},${a * 0.82})`); g.addColorStop(0.82, `rgba(${cr},${cg},${cb},${a * 0.95})`);
+      g.addColorStop(0.95, `rgba(${cr},${cg},${cb},${Math.min(1, a * 1.25)})`); g.addColorStop(1, `rgba(${cr},${cg},${cb},${a * 0.35})`);
+      x.fillStyle = g; x.fill();
+    }
+  }
+  x.globalCompositeOperation = 'source-over';
+}
+
+function layerEntry(L, D, N) {
+  const key = Math.round(D * 2) + (L.hasLight ? (N > 2.7 ? 'p' : 'c') : '');
+  let e = L.cache.get(key);
+  if (e) { L.cache.delete(key); L.cache.set(key, e); return e; }
+  const sig = sigOf(D);
+  e = { img: blurTo(L.canvas, sig, mk(W, H)) };
+  if (L.hasLight) {
+    e.lit = mk(W, H);
+    if (L.emitCanvas) blurTo(L.emitCanvas, sig, e.lit);
+    drawLights(e.lit.getContext('2d'), L.lights, D, N);
+  }
+  L.cache.set(key, e);
+  if (L.cache.size > 14) L.cache.delete(L.cache.keys().next().value);
+  return e;
+}
+function silOf(e) {
+  if (!e.sil) { const c = mk(W, H), x = c.getContext('2d'); x.drawImage(e.img, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#000'; x.fillRect(0, 0, W, H); e.sil = c; }
+  return e.sil;
+}
+
+/* ---------- własne zdjęcie ---------- */
+const PHOTO = { canvas: null, name: '', cache: new Map() };
+function setPhoto(img, name) {
+  const c = mk(W, H), x = c.getContext('2d');
+  const sc = Math.max(W / img.width, H / img.height), w = img.width * sc, h = img.height * sc;
+  x.fillStyle = '#000'; x.fillRect(0, 0, W, H); x.imageSmoothingQuality = 'high'; x.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+  PHOTO.canvas = c; PHOTO.name = name; PHOTO.cache.clear();
+}
+
+function composePhoto(P) {
+  const st = P.st;
+  baseX.fillStyle = '#000'; baseX.fillRect(0, 0, W, H);
+  if (!PHOTO.canvas) return;
+  const D = st.photoBlur ? P.coc(P.sSubj + st.photoBg) : 0, sig = sigOf(D);
+  if (sig < 0.35) { baseX.drawImage(PHOTO.canvas, 0, 0); return; }
+  const key = Math.round(D * 2);
+  let img = PHOTO.cache.get(key);
+  if (!img) { img = blurTo(PHOTO.canvas, sig, mk(W, H)); PHOTO.cache.set(key, img); if (PHOTO.cache.size > 10) PHOTO.cache.delete(PHOTO.cache.keys().next().value); }
+  baseX.drawImage(img, 0, 0);
+  // ostra strefa wokół wskazanego punktu (przybliżenie — brak mapy głębi)
+  maskX.globalCompositeOperation = 'source-over'; maskX.clearRect(0, 0, W, H); maskX.drawImage(PHOTO.canvas, 0, 0);
+  maskX.globalCompositeOperation = 'destination-in';
+  const cx = st.photoFx * W, cy = st.photoFy * H, r = st.photoR * W;
+  maskX.save(); maskX.translate(cx, cy); maskX.scale(1, 1.3);
+  const g = maskX.createRadialGradient(0, 0, 0, 0, 0, r); g.addColorStop(0, '#000'); g.addColorStop(0.62, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  maskX.fillStyle = g; maskX.fillRect(-W * 2, -H * 2, W * 4, H * 4); maskX.restore();
+  maskX.globalCompositeOperation = 'source-over';
+  baseX.drawImage(maskC, 0, 0);
+}
+
+function renderDynamic(L, P, t0, D) {
+  const n = clamp(Math.ceil(P.motionPx / 1.25) + 1, 1, 32);
+  dynX.clearRect(0, 0, W, H);
+  if (n === 1) L.drawAt(dynX, t0, P.vpx);
+  else {
+    // całkowanie w czasie otwarcia migawki: n chwil w przedziale [t0, t0 + t], uśrednione
+    dynX.globalCompositeOperation = 'lighter'; dynX.globalAlpha = 1 / n;
+    for (let j = 0; j < n; j++) L.drawAt(dynX, t0 + P.t * j / (n - 1), P.vpx);
+    dynX.globalCompositeOperation = 'source-over'; dynX.globalAlpha = 1;
+  }
+  const sig = sigOf(D);
+  if (sig >= 0.35) { blurTo(dynC, sig, dyn2C); baseX.drawImage(dyn2C, 0, 0); } else baseX.drawImage(dynC, 0, 0);
+}
+
+function compose(P, tScene) {
+  const scn = P.scn;
+  baseX.globalCompositeOperation = 'source-over';
+  if (scn.photo) { composePhoto(P); return false; }
+  const layers = sceneLayers(P.st.scene), useL = scn.hasLights;
+  baseX.fillStyle = '#000'; baseX.fillRect(0, 0, W, H);
+  if (useL) { lightX.globalCompositeOperation = 'source-over'; lightX.fillStyle = '#000'; lightX.fillRect(0, 0, W, H); }
+  let lit = false;
+  for (const L of layers) {
+    const dist = L.off === Infinity ? 1e5 : Math.max(0.2, P.sSubj + L.off);
+    const D = P.coc(dist);
+    if (L.dynamic) { renderDynamic(L, P, tScene, D); continue; }
+    const e = layerEntry(L, D, P.N);
+    baseX.drawImage(e.img, 0, 0);
+    if (useL) {
+      if (lit) lightX.drawImage(silOf(e), 0, 0);      // bliższa warstwa zasłania światła dalszych
+      if (e.lit) { lightX.globalCompositeOperation = 'lighter'; lightX.drawImage(e.lit, 0, 0); lightX.globalCompositeOperation = 'source-over'; lit = true; }
+    }
+  }
+  return useL;
+}
+
+function hash32(n) { n = Math.imul(n ^ (n >>> 16), 0x45d9f3b); n = Math.imul(n ^ (n >>> 16), 0x45d9f3b); return (n ^ (n >>> 16)) >>> 0; }
+const ROWOFF = new Uint32Array(H);
+
+function processFrame(P, k, out, useL, zebra, hist) {
+  const b = baseX.getImageData(0, 0, W, H).data;
+  const l = useL ? lightX.getImageData(0, 0, W, H).data : null;
+  const o = out.data, gL = Math.pow(2, P.L), FW = P.fw, G = P.G, rd2 = P.rd * P.rd, K = LIGHT_HDR;
+  const s2l = S2L, l2s = L2S, gt = GT, M = GT_MASK;
+  for (let y = 0; y < H; y++) ROWOFF[y] = hash32(k * 7919 + y * 104729 + 17) & M;
+  if (hist) hist.fill(0);
+  let clip = 0, i = 0;
+  const zph = (k * 2) & 15;
+  for (let y = 0; y < H; y++) {
+    let gi = ROWOFF[y];
+    const hrow = hist && (y & 1) === 0;
+    for (let x = 0; x < W; x++, i += 4) {
+      let r = s2l[b[i]], g = s2l[b[i + 1]], bl = s2l[b[i + 2]];
+      if (l) { r += s2l[l[i]] * K; g += s2l[l[i + 1]] * K; bl += s2l[l[i + 2]] * K; }
+      const nl = 0.8 * gt[(gi++) & M];
+      let p = r * gL * FW; if (p > FW) p = FW;
+      let v = p * G + G * Math.sqrt(p + rd2) * (nl + 0.6 * gt[(gi++) & M]);
+      const R8 = v <= 0 ? 0 : v >= 1 ? 255 : l2s[(v * 4095) | 0];
+      p = g * gL * FW; if (p > FW) p = FW;
+      v = p * G + G * Math.sqrt(p + rd2) * (nl + 0.6 * gt[(gi++) & M]);
+      const G8 = v <= 0 ? 0 : v >= 1 ? 255 : l2s[(v * 4095) | 0];
+      p = bl * gL * FW; if (p > FW) p = FW;
+      v = p * G + G * Math.sqrt(p + rd2) * (nl + 0.6 * gt[(gi++) & M]);
+      const B8 = v <= 0 ? 0 : v >= 1 ? 255 : l2s[(v * 4095) | 0];
+      const lum = (R8 * 54 + G8 * 183 + B8 * 19) >> 8;
+      if (R8 === 255 || G8 === 255 || B8 === 255) clip++;
+      if (hrow && (x & 1) === 0) hist[lum >> 2]++;
+      if (zebra && lum >= 245 && ((x + y + zph) & 15) < 6) { o[i] = 20; o[i + 1] = 20; o[i + 2] = 20; }
+      else { o[i] = R8; o[i + 1] = G8; o[i + 2] = B8; }
+      o[i + 3] = 255;
+    }
+  }
+  return clip / (W * H);
+}
+
+/* odszumianie w kamerze: wygładza szum, ale razem z nim drobne szczegóły */
+function nrSigma(P) { return P.st.nr ? clamp((P.noiseMid - 0.025) * 9, 0, 1.3) : 0; }
+
+function viewTime(P, w) {
+  const k = Math.floor(w * (S.play === '25' ? 25 : P.F) + 1e-6);
+  return { k, t: k / P.F };
+}
+function renderView(P, w, view, zebra, wantHist) {
+  const { k, t } = viewTime(P, w);
+  const useL = compose(P, t);
+  const clip = processFrame(P, k, view.img, useL, zebra, wantHist ? view.hist : null);
+  view.x.putImageData(view.img, 0, 0);
+  const ns = nrSigma(P);
+  if (ns > 0.15) { nrX.clearRect(0, 0, W, H); nrX.drawImage(view.c, 0, 0); view.x.filter = `blur(${ns.toFixed(2)}px)`; view.x.drawImage(nrC, 0, 0); view.x.filter = 'none'; }
+  view.k = k; view.t = t; view.clip = clip;
+  return view;
+}
+function mkView() { const c = mk(W, H), x = c.getContext('2d'); return { c, x, img: x.createImageData(W, H), hist: new Uint32Array(64), k: 0, t: 0, clip: 0 }; }
+const VA = mkView(), VB = mkView();
+/* =====================================================================
+   4. UI — kontrolki, zależności FPS–migawka, tryb edukacyjny
+   ===================================================================== */
+const ic = (n, cls = 'i') => `<svg class="${cls}"><use href="#${n}"/></svg>`;
+function slider(id, label, sub, min, max, step, ticks) {
+  return `<div class="ctl" id="c-${id}"><div class="ctl-h"><label for="r-${id}">${label}</label><span class="v" id="v-${id}"></span></div>
+  ${sub ? `<div class="sub">${sub}</div>` : ''}<input type="range" id="r-${id}" min="${min}" max="${max}" step="${step}">
+  <div class="ticks" id="t-${id}">${tickHtml(ticks, min, max)}</div><div class="edu" id="e-${id}"></div></div>`;
+}
+const tickHtml = (ticks, min, max) => ticks.map(([v, t]) => `<span style="left:${(v - min) / (max - min) * 100}%">${t}</span>`).join('');
+const seg = (id, opts, cls = 'full') => `<div class="seg ${cls}" id="s-${id}">${opts.map(o => `<button data-v="${o[0]}" title="${o[2] || ''}">${o[1]}</button>`).join('')}</div>`;
+const sw = (id, label, title = '') => `<label class="sw" title="${title}"><input type="checkbox" id="w-${id}"><span></span><em>${label}</em></label>`;
+const sec = (id, icon, title, body) => `<div class="sec" id="sec-${id}"><h3>${ic(icon)}${title}</h3><div class="body">${body}</div></div>`;
+
+function buildSide() {
+  $('#tab-cam').innerHTML =
+    sec('exp', 'i-sun', 'Ekspozycja',
+      slider('ev', 'Oświetlenie sceny', 'Ile światła jest w scenie — niezależnie od kamery', 0, 16, 0.5, [[0, '0'], [4, '4'], [8, '8'], [12, '12'], [16, '16 EV']]) +
+      slider('iso', 'ISO — wzmocnienie sygnału', 'Nie dodaje światła; wzmacnia zarejestrowany sygnał (i szum)', 0, 21, 1, [[0, '100'], [9, '800'], [15, '3200'], [18, '6400'], [21, '12800']]) +
+      slider('f', 'Przysłona', 'Mniejsza liczba f/ = większy otwór = więcej światła', 0, 24, 1, [[0, 'f/1.4'], [6, '2.8'], [12, '5.6'], [18, '11'], [24, '22']]) +
+      `<div class="ctl" id="c-nd"><div class="ctl-h"><label>Filtr ND (szary)</label><span class="v" id="v-nd"></span></div><div class="sub">Zatrzymuje część światła, nie zmieniając przysłony ani migawki</div>
+       ${seg('nd', ND.map((n, i) => [i, n.s ? n.l.replace('ND ', '') : 'Brak', n.d]))}<div class="edu" id="e-nd"></div></div>`) +
+    sec('time', 'i-film', 'Klatki i migawka',
+      `<div class="ctl" id="c-fps"><div class="ctl-h"><label>Liczba klatek (FPS)</label><span class="v" id="v-fps"></span></div><div class="sub">Ile obrazów kamera rejestruje w ciągu sekundy</div>
+       ${seg('fps', FPS_L.map(v => [v, v]))}<div class="edu" id="e-fps"></div></div>
+       <div class="ctl" id="c-sh"><div class="ctl-h"><label for="r-sh">Migawka</label><span class="row" style="gap:8px"><svg class="shdisc" id="shdisc" viewBox="-20 -20 40 40"></svg><span class="v" id="v-sh"></span></span></div>
+       <div class="row" style="margin:3px 0 2px">${seg('mode', [['speed', 'Czas migawki', 'Ustaw czas otwarcia w sekundach (fotografia, kamery TV)'], ['angle', 'Kąt migawki', 'Ustaw kąt (kamery filmowe) — czas zależy wtedy od FPS']], '')}</div>
+       <input type="range" id="r-sh"><div class="ticks" id="t-sh"></div>
+       <div class="row" style="margin-top:6px">${sw('lock', 'Zasada 180° — wiąż migawkę z FPS', 'Czas migawki = 1/(2×FPS)')}</div>
+       <div class="edu" id="e-sh"></div></div>
+       <div id="motionBox">
+         ${slider('speed', 'Prędkość samochodu', '', 5, 120, 5, [[5, '5'], [30, '30'], [60, '60'], [90, '90'], [120, '120 km/h']])}
+         <div class="row">${sw('onion', 'Pokaż próbkowanie ruchu', 'Zaznacza pozycje samochodu w poprzednich klatkach')}</div>
+       </div>
+       <div class="note" id="noMotion">Ruch obiektu, rozmycie ruchu i zwolnione tempo najlepiej widać w scenie <a href="#" id="goMotion" style="color:var(--accent)">Ruch</a>.</div>`) +
+    sec('lens', 'i-aperture', 'Obiektyw i matryca',
+      slider('foc', 'Ogniskowa', 'Kadr postaci pozostaje stały — kamera odsuwa się lub przysuwa', 0, FOC.length - 1, 1, [[0, '16'], [2, '24'], [5, '50'], [7, '85'], [10, '200 mm']]) +
+      `<div class="ctl" id="c-sensor"><div class="ctl-h"><label>Wielkość matrycy</label><span class="v" id="v-sensor"></span></div>
+       ${seg('sensor', SENS_ORDER.map(k => [k, SENS[k].s, SENS[k].n + ` (${SENS[k].w} mm)`]))}<div class="edu" id="e-sensor"></div></div>` +
+      slider('focus', 'Odległość ostrzenia', 'Kliknij w podgląd, aby ustawić ostrość na wybranym elemencie', 0, 100, 0.5, [[0, '0,3 m'], [33, '3 m'], [66, '30 m'], [100, '∞']]) +
+      `<div class="row" style="margin-top:-2px"><button class="tb sm" id="btnFocusSubj">${ic('i-focus')}Ostrość na obiekt główny</button></div>`) +
+    sec('img', 'i-eye', 'Obraz i podgląd',
+      `<div class="ctl"><div class="row">${sw('nr', 'Odszumianie w kamerze', 'Redukuje szum, ale wygładza też drobne szczegóły')}</div>
+       <div class="row" style="margin-top:8px">${sw('zebra', 'Zebra (prześwietlenia)', 'Paski na obszarach bliskich bieli — jak w kamerach')}</div>
+       <div class="edu" id="e-nr"></div></div>`) +
+    `<div id="photoSec">` + sec('photo', 'i-image', 'Własne zdjęcie',
+      `<div class="row" style="margin:4px 0 8px"><button class="tb sm pri" id="btnPhoto2">${ic('i-upload')}Wczytaj własne zdjęcie</button><span class="note" id="photoName"></span></div>
+       <div class="note box">Zdjęcie nie zawiera informacji o odległościach (mapy głębi). Ekspozycja i szum są symulowane w pełni, ale <b>rozmycie tła to tylko przybliżenie</b>: wokół wskazanego punktu (kliknij w zdjęcie) obraz pozostaje ostry, a reszta rozmywa się tak, jakby leżała w podanej odległości za obiektem. Ruchu nie da się odtworzyć z jednego zdjęcia.</div>
+       <div class="row">${sw('pblur', 'Przybliżone rozmycie tła')}</div>
+       ${slider('pbg', 'Szacowana odległość tła za obiektem', '', 0.5, 30, 0.5, [[0.5, '0,5'], [10, '10'], [20, '20'], [30, '30 m']])}
+       ${slider('pr', 'Wielkość strefy ostrości', '', 0.1, 0.6, 0.01, [[0.1, 'mała'], [0.6, 'duża']])}`) + `</div>`;
+
+  const ex = $('#tab-ex');
+  ex.innerHTML = `<p class="note" style="margin-top:12px">Każde ćwiczenie ustawia scenę i parametry startowe. Zmieniaj ustawienia, a potem kliknij <b>Sprawdź</b>. Program oceni rozwiązanie i wyjaśni zależności.</p>` +
+    EXS.map((e, i) => `<div class="ex" id="ex-${e.id}"><h5><span class="n">${i + 1}</span>${e.t}</h5><p>${e.goal}</p>
+      <div class="row"><button class="tb sm" data-exstart="${e.id}">Rozpocznij</button><button class="tb sm pri" data-excheck="${e.id}">${ic('i-check')}Sprawdź</button><button class="tb sm" data-exhint="${e.id}">${ic('i-bulb')}Wskazówka</button></div>
+      <div class="fbk" id="fb-${e.id}"></div></div>`).join('');
+}
+
+/* ---------- zależności FPS ↔ migawka ---------- */
+function applyShutter(trigger) {
+  const F = S.fps; let note = '';
+  if (S.lock180) { S.t = 1 / (2 * F); S.angle = 180; return note; }
+  if (S.mode === 'angle' && (trigger === 'fps' || trigger === 'angle')) S.t = S.angle / (360 * F);
+  if (S.t > 1 / F + 1e-9) { S.t = 1 / F; note = `Przy ${F} FPS jedna klatka trwa ${pl(1000 / F, 1)} ms, więc migawka nie może być otwarta dłużej niż 1/${F} s (kąt 360°).`; }
+  if (S.t < 1 / 12000) S.t = 1 / 12000;
+  S.angle = 360 * F * S.t;
+  return note;
+}
+
+let ver = 1;
+const dragFrom = {};
+function setVal(key, val, src = 'code') {
+  const old = S[key];
+  if (old === val && src !== 'force') return;
+  const before = dragFrom[key] ? dragFrom[key].P : derive(S), fromVal = dragFrom[key] ? dragFrom[key].v : old;
+  const tBefore = S.t;
+  S[key] = val;
+  let note = '';
+  if (['fps', 't', 'angle', 'lock180', 'mode'].includes(key)) note = applyShutter(key);
+  if (key === 'play' && cmp.on) cmp.dirty = true;
+  ver++;
+  if (src === 'ui') { const m = eduMsg(key, fromVal, val, before, derive(S), note, tBefore); if (m) showEdu(m.id, m.t, m.w); }
+  syncUI();
+}
+function eduTarget(key) { return { t: 'sh', angle: 'sh', lock180: 'sh', mode: 'sh', focusOff: 'focus', zebra: 'nr', photoBg: 'pbg', photoR: 'pr', photoBlur: 'pbg', speed: 'speed' }[key] || key; }
+function showEdu(id, html, warn) {
+  const el = $('#e-' + id); if (!el) return;
+  el.innerHTML = html; el.classList.toggle('warn', !!warn);
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+const times = x => { const v = Math.pow(2, Math.abs(x)); return v < 1.12 ? 'nieco' : pl(v, v < 10 ? 1 : 0) + '×'; };
+
+function eduMsg(key, ov, nv, A, B, note, tBefore) {
+  const id = eduTarget(key);
+  const dE = B.delta - A.delta;
+  const expTxt = Math.abs(B.delta) <= 0.33 ? 'Ekspozycja jest teraz poprawna.' : B.delta < 0 ? `Obraz jest niedoświetlony o ${pl(-B.delta, 1)} EV.` : `Obraz jest prześwietlony o ${pl(B.delta, 1)} EV.`;
+  let t = '', w = false;
+  switch (key) {
+    case 'ev':
+      t = nv > ov ? `Scena stała się jaśniejsza (+${pl(nv - ov, 1)} EV). Ustawienia kamery się nie zmieniły, więc na matrycę pada więcej światła: obraz jaśnieje, a szum maleje. ${expTxt}`
+        : `Scena stała się ciemniejsza (−${pl(ov - nv, 1)} EV). Na matrycę pada mniej światła. Jeśli wyrównasz to podnosząc ISO, wzrośnie szum — lepiej najpierw otworzyć przysłonę lub wydłużyć migawkę. ${expTxt}`;
+      break;
+    case 'iso':
+      t = nv > ov ? `Zwiększono ISO (${ISO_L[ov]} → ${ISO_L[nv]}). Przy tym samym świetle obraz jest jaśniejszy o ${pl(B.isoSt - A.isoSt, 1)} EV, ale na matrycę <b>nie trafia więcej światła</b> — wzmacniany jest sygnał razem z szumem, więc w symulacji wzrasta widoczność szumu. ${expTxt}`
+        : `Zmniejszono ISO (${ISO_L[ov]} → ${ISO_L[nv]}). Mniejsze wzmocnienie: obraz ciemniejszy, szum mniej widoczny. Aby zachować jasność, potrzeba więcej światła — szerszej przysłony, dłuższej migawki albo słabszego filtra ND. ${expTxt}`;
+      break;
+    case 'f': {
+      const st = (nv - ov) / 3;
+      t = nv < ov ? `Otwarto przysłonę (f/${F_L[ov]} → f/${F_L[nv]}; mniejsza liczba = większy otwór). Do matrycy dociera ${times(st)} więcej światła, a głębia ostrości maleje — tło rozmywa się mocniej. ${expTxt}`
+        : `Zmniejszono otwór przysłony (f/${F_L[ov]} → f/${F_L[nv]}). Do matrycy dociera mniej światła (${times(st)} mniej), ale zwiększa się głębia ostrości. Więcej elementów sceny może pozostawać ostrych. ${expTxt}`;
+      if (nv >= 21) t += ' <i>Uwaga: przy f/16–f/22 w prawdziwym obiektywie pojawia się dyfrakcja, która lekko obniża szczegółowość całego obrazu (tu niesymulowana).</i>';
+      break; }
+    case 't': case 'angle': case 'mode': case 'lock180': {
+      if (key === 'mode') { t = nv === 'angle' ? `Tryb kąta migawki (jak w kamerach filmowych). Kąt opisuje, jaką część czasu klatki migawka jest otwarta: 180° = połowa. Przy zmianie FPS kąt zostaje, a zmienia się czas.` : `Tryb czasu migawki (jak w aparatach i kamerach telewizyjnych). Przy zmianie FPS czas zostaje, o ile mieści się w czasie klatki.`; break; }
+      if (key === 'lock180') { t = nv ? `Zasada 180° włączona: czas migawki = 1/(2 × ${S.fps}) = ${fmtT(S.t)} s. Daje rozmycie ruchu odbierane jako naturalne. Przy zmianie FPS migawka dostosuje się sama — zmieni się też ekspozycja.` : 'Zasada 180° wyłączona — możesz ustawić dowolny czas migawki (nie dłuższy niż czas klatki).'; break; }
+      const r = B.t / A.t;
+      if (Math.abs(Math.log2(r)) < 0.01) { t = note || ''; w = !!note; break; }
+      t = r > 1 ? `Wydłużono czas migawki (${fmtT(A.t)} → ${fmtT(B.t)} s, kąt ${Math.round(B.angle)}°). Każda klatka zbiera ${times(Math.log2(r))} więcej światła, ale poruszające się obiekty rozmywają się bardziej. ${expTxt}`
+        : `Skrócono czas migawki (${fmtT(A.t)} → ${fmtT(B.t)} s, kąt ${Math.round(B.angle)}°). Mniej światła (${times(Math.log2(r))}), za to fazy ruchu są ostrzejsze, „zamrożone”. ${expTxt}`;
+      if (B.angle < 80) t += ' Przy tak krótkiej migawce i niskim FPS ruch w filmie wygląda na szarpany (efekt „stroboskopowy”).';
+      else if (Math.abs(B.angle - 180) < 6) t += ' To zasada 180° — naturalne rozmycie ruchu.';
+      if (note) { t = note + ' ' + t; w = true; }
+      break; }
+    case 'fps': {
+      t = `Zmieniono liczbę klatek: ${ov} → ${nv} FPS. Kamera rejestruje ${nv} obrazów na sekundę (co ${pl(1000 / nv, 1)} ms). <b>FPS sam w sobie nie zmienia jasności ani głębi ostrości.</b>`;
+      if (Math.abs(S.t - tBefore) > 1e-9) {
+        const why = S.lock180 ? 'włączona jest zasada 180°' : S.mode === 'angle' ? `w trybie kąta zachowany jest kąt ${Math.round(S.angle)}°` : 'migawka nie może trwać dłużej niż jedna klatka';
+        t += ` Czas migawki zmienił się na ${fmtT(S.t)} s, bo ${why} — <b>to</b> zmienia ekspozycję (${dE > 0 ? '+' : '−'}${pl(Math.abs(dE), 1)} EV) i rozmycie ruchu.`; w = Math.abs(dE) > 0.3;
+      }
+      if (S.play === '25' && nv !== 25) t += nv > 25 ? ` Odtwarzane w 25 FPS da spowolnienie ${pl(nv / 25, nv % 25 ? 2 : 0)}×.` : ` Odtwarzane w 25 FPS będzie lekko przyspieszone.`;
+      break; }
+    case 'nd': {
+      const s = ND[nv].s;
+      t = s ? `Filtr ${ND[nv].l} zatrzymuje ${s} EV światła (przepuszcza ${pl(100 / Math.pow(2, s), s > 4 ? 1 : 0)}%). Obraz ciemnieje bez zmiany przysłony i migawki — dzięki temu w jasnym świetle możesz zachować małą głębię ostrości i migawkę 180°. ${expTxt}` : `Bez filtra ND do matrycy dociera całe światło przechodzące przez obiektyw. ${expTxt}`;
+      break; }
+    case 'foc':
+      t = `Ogniskowa ${FOC[ov]} → ${FOC[nv]} mm. Kadr postaci pozostaje ten sam, więc kamera ${nv > ov ? 'odsuwa się' : 'przysuwa się'} (obiekt: ${fmtDist(B.sSubj)}). Przy tym samym kadrze dłuższa ogniskowa mocniej rozmywa tło. <i>W rzeczywistości zmieniłby się też wycinek i „kompresja” tła — tu tło jest uproszczone.</i>`;
+      break;
+    case 'sensor':
+      t = `Matryca ${SENS[nv].n} (${SENS[nv].w} mm szerokości). Dla tego samego kadru kamera z mniejszą matrycą musi stać dalej (obiekt: ${fmtDist(B.sSubj)}), więc przy tej samej przysłonie głębia ostrości jest większa. Mniejsza matryca zbiera też mniej światła na cały kadr — przy tym samym ISO szum jest wyższy.`;
+      break;
+    case 'focusOff':
+      t = `Ostrość: ${fmtDist(B.focus)}. Strefa ostrości (głębia ostrości) rozciąga się od ${fmtDist(B.near)} do ${fmtDist(B.far)}. Elementy poza nią są rozmyte tym mocniej, im dalej od płaszczyzny ostrości leżą.`;
+      break;
+    case 'speed':
+      t = `${nv} km/h ≈ ${pl(nv / 3.6, 1)} m/s. Między klatkami (${S.fps} FPS) samochód przesuwa się o ${Math.round(B.vpx / B.F)} px, a podczas otwarcia migawki o ${pl(B.motionPx, 1)} px — tyle wynosi rozmycie ruchu.`;
+      break;
+    case 'nr':
+      t = nv ? 'Odszumianie włączone: przy wysokim ISO kamera wygładza obraz. Szum maleje, ale tracisz też drobne szczegóły (np. faktura swetra, cegły).' : 'Odszumianie wyłączone: widzisz „surowy” szum matrycy, za to bez utraty szczegółów.';
+      break;
+    case 'zebra':
+      t = nv ? 'Zebra: ukośne paski pokazują obszary bliskie maksymalnej jasności, w których grozi utrata szczegółów.' : 'Zebra wyłączona.';
+      break;
+    case 'photoBg': case 'photoBlur':
+      t = `Przybliżenie: tło traktowane jest jak płaszczyzna ${pl(S.photoBg, 1)} m za obiektem (rozmycie ok. ${Math.round(B.coc(B.sSubj + S.photoBg))} px). Prawdziwe zdjęcie ma elementy w wielu odległościach — bez mapy głębi nie da się tego odtworzyć wiernie.`;
+      break;
+    default: return null;
+  }
+  return t ? { id, t, w } : null;
+}
+
+const EDU_DEFAULT = {
+  ev: 'Symuluje warunki oświetleniowe sceny (w EV dla ISO 100). To nie jest ustawienie kamery — zmienia się światło, nie kamera.',
+  iso: 'ISO to wzmocnienie sygnału z matrycy. Wyższe ISO rozjaśnia obraz, ale nie zwiększa ilości światła — dlatego rośnie widoczność szumu. Rzeczywisty poziom szumu zależy od matrycy i elektroniki kamery.',
+  f: 'Przysłona reguluje średnicę otworu w obiektywie. f/1.4 → duży otwór, dużo światła, mała głębia ostrości. f/16 → mały otwór, mało światła, duża głębia ostrości.',
+  nd: 'Każde 0.3 gęstości filtra ND to 1 EV (połowa światła).',
+  fps: 'FPS to liczba klatek na sekundę. Wpływa na płynność i próbkowanie ruchu oraz umożliwia zwolnione tempo. Nie zmienia głębi ostrości ani jasności.',
+  sh: 'Czas migawki to czas naświetlania jednej klatki. Decyduje o rozmyciu ruchu i ilości światła. Nie może być dłuższy niż czas klatki (1/FPS).',
+  sensor: 'Większa matryca przy tym samym kadrze i przysłonie daje płytszą głębię ostrości i zwykle mniejszy szum.',
+  focus: 'Ostrość ustawiasz na konkretną odległość. Głębia ostrości to strefa wokół niej, która wygląda na ostrą.',
+  nr: 'Odszumianie (NR) w kamerze zmniejsza szum kosztem detali.',
+  foc: 'Ogniskowa wpływa na kąt widzenia i — przy zachowanym kadrze — na rozmycie tła.',
+};
+/* ---------- ćwiczenia ---------- */
+const exp7 = P => ({ ok: Math.abs(P.delta) <= 0.7, t: `Ekspozycja ${fmtEv(P.delta)} EV (cel: ±0,7 EV)` });
+const EXS = [
+  { id: 'portret', t: 'Portret', scene: 'portrait',
+    goal: 'Ustaw kamerę tak, aby twarz była wyraźna, a tło mocno rozmyte (krążek rozmycia tła ≥ 25 px). Ekspozycja ma pozostać poprawna.',
+    start: { f: 18, iso: 14, foc: 4, nd: 0, t: 1 / 50, fps: 25, ev: 8, focusOff: 0 },
+    check(P) { const bg = P.coc(P.sSubj + 6), sj = P.coc(P.sSubj); return [
+      { ok: sj <= Math.max(1.5, P.cAccPx * 1.5), t: `Twarz ostra (rozmycie ${pl(sj, 1)} px)` },
+      { ok: bg >= 25, t: `Tło rozmyte krążkiem ${Math.round(bg)} px (cel: ≥ 25 px)` }, exp7(P)]; },
+    hint: 'Otwórz przysłonę (f/1.4–f/2) i użyj dłuższej ogniskowej (85–135 mm). Większy otwór wpuszcza dużo więcej światła — wyrównaj to niższym ISO. Jeśli ostrość uciekła, kliknij twarz na podglądzie.',
+    why: 'Mała głębia ostrości wynika z dużego otworu przysłony, dłuższej ogniskowej przy tym samym kadrze i dużej odległości tła od postaci. Otwarcie przysłony zwiększa ilość światła, więc ISO trzeba było obniżyć.' },
+  { id: 'ciemna', t: 'Ciemna scena', scene: 'night',
+    goal: 'Uzyskaj poprawną ekspozycję nocnej ulicy przy możliwie niskim szumie: ISO nie wyższe niż 1600.',
+    start: { f: 15, iso: 9, t: 1 / 250, fps: 25, nd: 0, foc: 4, ev: 4, focusOff: 0 },
+    check(P) { return [exp7(P), { ok: P.iso <= 1650, t: `ISO ${ISO_L[P.st.iso]} (cel: ≤ 1600)` }, { ok: P.nd === 0, t: P.nd ? 'Filtr ND w nocy tylko zabiera światło' : 'Bez filtra ND' }]; },
+    hint: 'Najpierw zbierz jak najwięcej światła: zdejmij ND, otwórz przysłonę do f/1.4–f/2 i wydłuż migawkę (przy 25 FPS najdłużej 1/25 s, a z zasadą 180° — 1/50 s). Dopiero na końcu podnieś ISO tyle, ile trzeba.',
+    why: 'Szum zależy przede wszystkim od tego, ile światła zebrała matryca. ISO tylko wzmacnia sygnał — dlatego najpierw otwiera się przysłonę i wydłuża migawkę, a ISO podnosi się na końcu.' },
+  { id: 'zamrozenie', t: 'Zamrożenie ruchu', scene: 'motion',
+    goal: 'Ustaw parametry, które ograniczą rozmycie jadącego samochodu do maks. 3 px w pojedynczej klatce, przy poprawnej ekspozycji.',
+    start: { f: 12, iso: 2, t: 1 / 50, fps: 25, nd: 3, foc: 4, ev: 13, speed: 30, lock180: false, mode: 'speed', focusOff: 0 },
+    check(P) { return [{ ok: P.motionPx <= 3, t: `Rozmycie ruchu ${pl(P.motionPx, 1)} px (cel: ≤ 3 px)` }, exp7(P)]; },
+    hint: 'Rozmycie ruchu zależy od czasu migawki, nie od FPS. Wyłącz zasadę 180° i skróć migawkę (np. 1/500 s). Skrócenie o ~3 EV wymaga zdjęcia filtra ND 0.9 albo otwarcia przysłony / podniesienia ISO.',
+    why: 'Krótka migawka „zamraża” ruch w każdej klatce. FPS określa tylko, jak często powstają klatki — rozmycia w pojedynczej klatce nie zmienia.' },
+  { id: 'filmowy', t: 'Filmowy ruch', scene: 'motion',
+    goal: 'Ustaw 25 FPS oraz migawkę zgodną z zasadą 180° (1/50 s), zachowując poprawną ekspozycję w słońcu.',
+    start: { f: 12, iso: 2, t: 1 / 500, fps: 50, nd: 0, foc: 4, ev: 13, speed: 30, lock180: false, mode: 'speed', focusOff: 0 },
+    check(P) { return [{ ok: P.F === 25, t: `${P.F} FPS (cel: 25)` }, { ok: Math.abs(P.angle - 180) <= 8, t: `Kąt migawki ${Math.round(P.angle)}° = ${fmtT(P.t)} s (cel: 180° = 1/50 s)` }, exp7(P)]; },
+    hint: 'Przy 25 FPS zasada 180° oznacza 1/50 s. Taka migawka wpuszcza dużo więcej światła niż 1/500 s — w słońcu użyj filtra ND, aby nie zmieniać przysłony ani nie schodzić z ISO poniżej 100.',
+    why: 'Migawka 180° daje rozmycie ruchu, do którego widzowie są przyzwyczajeni w kinie i telewizji. Filtr ND pozwala ją zachować w jasnym świetle.' },
+  { id: 'slowmo', t: 'Slow motion', scene: 'motion',
+    goal: 'Nagraj scenę w 100 lub 120 FPS, a następnie odtwórz ją w 25 FPS (przełącznik nad podglądem). Ekspozycja ma być poprawna.',
+    start: { f: 12, iso: 2, t: 1 / 50, fps: 25, nd: 3, foc: 4, ev: 13, speed: 60, lock180: false, mode: 'speed', play: 'real', focusOff: 0 },
+    check(P) { return [{ ok: P.F >= 100, t: `Nagranie: ${P.F} FPS (cel: 100 lub 120)` }, { ok: S.play === '25', t: S.play === '25' ? `Odtwarzanie 25 FPS → spowolnienie ${pl(P.F / 25, P.F % 25 ? 1 : 0)}×` : 'Włącz „Odtwarzanie 25 FPS”' }, exp7(P),
+      { ok: true, t: Math.abs(P.angle - 180) <= 8 ? 'Migawka 180° — płynne zwolnione tempo' : `Migawka ${Math.round(P.angle)}° (180° jest zalecane, ale nie wymagane)` }]; },
+    hint: 'Ustaw 100 lub 120 FPS. Migawka musi być krótsza (najwyżej 1/FPS), więc obraz ciemnieje — zmniejsz filtr ND. Potem włącz „Odtwarzanie 25 FPS”.',
+    why: 'Zwolnienie = klatki zarejestrowane / klatki odtwarzane. 100 FPS odtworzone w 25 FPS trwa 4 razy dłużej. Wyższe FPS wymusza krótszą migawkę, więc potrzeba więcej światła.' },
+  { id: 'krajobraz', t: 'Ostry krajobraz', scene: 'landscape',
+    goal: 'Uzyskaj ostrość od trawy na pierwszym planie (1,6 m) aż po góry (∞): rozmycie ≤ 1,5 px w obu miejscach, przy poprawnej ekspozycji.',
+    start: { f: 0, iso: 0, foc: 5, nd: 5, t: 1 / 50, fps: 25, ev: 14, focusOff: 0 },
+    check(P) { const fg = P.coc(P.sSubj - 3.4), inf = P.coc(1e5); return [{ ok: fg <= 1.5, t: `Trawa: ${pl(fg, 1)} px` }, { ok: inf <= 1.5, t: `Góry: ${pl(inf, 1)} px` }, exp7(P)]; },
+    hint: 'Przymknij przysłonę (f/8–f/16) i użyj krótkiej ogniskowej (16–24 mm). Przymknięcie zabiera światło — zmniejsz filtr ND. Ostrość możesz ustawić nieco za płotem (w okolicach odległości hiperfokalnej).',
+    why: 'Głębia ostrości rośnie przy mniejszym otworze przysłony, krótszej ogniskowej i ostrzeniu w okolicach odległości hiperfokalnej.' },
+  { id: 'wywiad', t: 'Wywiad telewizyjny', scene: 'studio',
+    goal: 'Prezenter ostry, tło lekko rozmyte (4–20 px), 25 FPS z migawką 180°, ISO ≤ 800 i poprawna ekspozycja.',
+    start: { f: 21, iso: 14, foc: 5, nd: 0, t: 1 / 50, fps: 25, ev: 9, focusOff: 0 },
+    check(P) { const bg = P.coc(P.sSubj + 5), sj = P.coc(P.sSubj); return [{ ok: sj <= 1.5, t: `Prezenter: ${pl(sj, 1)} px` }, { ok: bg >= 4 && bg <= 20, t: `Tło: ${Math.round(bg)} px (cel: 4–20 px)` },
+      { ok: P.F === 25 && Math.abs(P.angle - 180) <= 8, t: `${P.F} FPS, ${Math.round(P.angle)}°` }, { ok: P.iso <= 820, t: `ISO ${ISO_L[P.st.iso]} (cel: ≤ 800)` }, exp7(P)]; },
+    hint: 'f/16 przy ISO 2500 daje ostre tło i dużo szumu. Otwórz przysłonę do ok. f/2–f/4 i obniż ISO. Tło oddzieli się od prezentera, ale nie zniknie — tak jak w typowym studiu.',
+    why: 'W telewizji tło zwykle lekko się rozmywa, by oddzielić osobę, ale nadal pokazywać studio. Szersza przysłona pozwala też obniżyć ISO.' },
+];
+const exState = { active: null, done: new Set() };
+try { JSON.parse(localStorage.getItem('kadr.done') || '[]').forEach(x => exState.done.add(x)); } catch (e) {}
+
+/* ---------- porównanie A/B ---------- */
+const cmp = { on: false, mode: 'split', A: null, x: 0.5, dirty: true };
+
+/* ---------- synchronizacja UI ---------- */
+function paintTrack(el, block = 0) {
+  const p = (el.value - el.min) / (el.max - el.min) * 100;
+  let bg = `linear-gradient(90deg,var(--accent) 0 ${p}%,#2a303a ${p}% 100%)`;
+  if (block > 0) bg = `linear-gradient(90deg,rgba(255,107,107,.55) 0 ${block}%,transparent ${block}%),` + bg;
+  el.style.setProperty('--trk', bg);
+}
+const focusToPos = m => !isFinite(m) || m >= 900 ? 100 : clamp(Math.log10(m / 0.3) / 3 * 99, 0, 99);
+const posToFocus = p => p >= 99.75 ? Infinity : 0.3 * Math.pow(10, p / 99 * 3);
+function setSeg(id, v) { document.querySelectorAll(`#s-${id} button`).forEach(b => b.classList.toggle('on', b.dataset.v == String(v))); }
+function discSvg(angle) {
+  const a = clamp(angle, 0, 359.9) * Math.PI / 180, r = 17, x = Math.sin(a) * r, y = -Math.cos(a) * r;
+  return `<circle r="18" fill="#0d1014" stroke="#3a4250"/><path d="M0 0 L0 ${-r} A${r} ${r} 0 ${angle > 180 ? 1 : 0} 1 ${x.toFixed(2)} ${y.toFixed(2)} Z" fill="#f5a524" opacity=".9"/><circle r="2.5" fill="#0d1014"/>`;
+}
+function descr(st) { return `${st.fps}p · ${fmtT(st.t)} s (${Math.round(360 * st.fps * st.t)}°) · f/${F_L[st.f]} · ISO ${ISO_L[st.iso]}${ND[st.nd].s ? ' · ' + ND[st.nd].l : ''} · ${FOC[st.foc]} mm`; }
+
+function syncUI() {
+  const P = derive(S), sc = SCN[S.scene];
+  const R = (id, v) => { const el = $('#r-' + id); if (!el) return el; el.value = v; paintTrack(el); return el; };
+  R('ev', S.ev); $('#v-ev').innerHTML = `EV ${pl(S.ev, 1)} <small>${evLabel(S.ev)}</small>`;
+  R('iso', S.iso); $('#v-iso').textContent = 'ISO ' + ISO_L[S.iso];
+  R('f', S.f); $('#v-f').textContent = 'f/' + F_L[S.f];
+  setSeg('nd', S.nd); $('#v-nd').textContent = ND[S.nd].s ? `${ND[S.nd].l} (${ND[S.nd].d})` : 'brak';
+  setSeg('fps', S.fps); $('#v-fps').innerHTML = `${S.fps} <small>kl./s</small>`;
+  setSeg('mode', S.mode);
+  const rs = $('#r-sh');
+  if (S.mode === 'speed') {
+    rs.min = 0; rs.max = SH.length - 1; rs.step = 1; rs.value = nearestSH(S.t);
+    const first = SH.findIndex(v => v >= S.fps - 1e-9);
+    $('#t-sh').innerHTML = tickHtml([[0, '1/25'], [4, '1/50'], [9, '1/125'], [16, '1/500'], [22, '1/2000']], 0, 22);
+    paintTrack(rs, first > 0 ? first / (SH.length - 1) * 100 : 0);
+  } else {
+    rs.min = 5; rs.max = 360; rs.step = 0.5; rs.value = clamp(S.angle, 5, 360);
+    $('#t-sh').innerHTML = tickHtml([[45, '45°'], [90, '90°'], [180, '180°'], [270, '270°'], [360, '360°']], 5, 360);
+    paintTrack(rs);
+  }
+  rs.disabled = S.lock180;
+  $('#w-lock').checked = S.lock180;
+  $('#v-sh').innerHTML = `${fmtT(S.t)} s <small>${Math.round(P.angle)}°</small>`;
+  $('#shdisc').innerHTML = discSvg(P.angle);
+  const mo = !!sc.motion; $('#motionBox').hidden = !mo; $('#noMotion').hidden = mo;
+  R('speed', S.speed); $('#v-speed').textContent = S.speed + ' km/h';
+  $('#w-onion').checked = S.onion;
+  R('foc', S.foc); $('#v-foc').innerHTML = `${FOC[S.foc]} mm <small>${S.sensor === 'ff' ? '' : 'ekw. ' + Math.round(FOC[S.foc] * 36 / SENS[S.sensor].w) + ' mm'}</small>`;
+  setSeg('sensor', S.sensor); $('#v-sensor').innerHTML = `${SENS[S.sensor].n} <small>${SENS[S.sensor].w}×${SENS[S.sensor].h} mm</small>`;
+  R('focus', focusToPos(P.focus)); $('#v-focus').innerHTML = `${fmtDist(P.focus)} <small>${focusLayerName(P)}</small>`;
+  $('#c-focus').style.opacity = sc.photo ? 0.45 : 1; $('#r-focus').disabled = !!sc.photo;
+  $('#w-nr').checked = S.nr; $('#w-zebra').checked = S.zebra;
+  $('#photoSec').hidden = !sc.photo;
+  if (sc.photo) {
+    $('#w-pblur').checked = S.photoBlur; R('pbg', S.photoBg); $('#v-pbg').textContent = pl(S.photoBg, 1) + ' m'; R('pr', S.photoR); $('#v-pr').textContent = Math.round(S.photoR * 100) + '%';
+    $('#photoName').textContent = PHOTO.name ? PHOTO.name : 'brak zdjęcia';
+  }
+  setSeg('play', S.play); document.querySelectorAll('#segPlay button').forEach(b => b.classList.toggle('on', b.dataset.v === S.play));
+  document.querySelectorAll('#scenes button').forEach(b => b.classList.toggle('on', b.dataset.s === S.scene));
+  $('#photoDrop').hidden = !(sc.photo && !PHOTO.canvas);
+  updateText(P);
+}
+function focusLayerName(P) {
+  if (P.scn.photo) return '';
+  const layers = sceneLayers(S.scene);
+  let best = null, bd = 1e9;
+  for (const L of layers) { const d = L.off === Infinity ? 1e5 : P.sSubj + L.off; const e = Math.abs(Math.log(Math.max(d, 0.1) / P.focus)); if (e < bd) { bd = e; best = L; } }
+  return best && bd < 0.12 ? best.name.replace(/ \(obiekt główny\)/, '') : '';
+}
+
+/* ---------- panel informacyjny ---------- */
+function updateText(P) {
+  const d = P.delta, dc = clamp(d, -5, 5);
+  $('#needle').style.left = ((dc + 5) / 10 * 100) + '%';
+  const st = Math.abs(d) <= 0.33 ? ['poprawna', 'ok'] : Math.abs(d) <= 1 ? [d < 0 ? 'lekko niedoświetlony' : 'lekko prześwietlony', 'wr'] : [d < 0 ? (d < -5 ? 'niedoświetlony (poza skalą)' : 'niedoświetlony') : (d > 5 ? 'prześwietlony (poza skalą)' : 'prześwietlony'), 'er'];
+  $('#expVal').innerHTML = `${fmtEv(d)} EV <small class="${st[1]}">${st[0]}</small>`;
+  $('#expEv').textContent = `scena EV ${pl(S.ev, 1)}`;
+  $('#expEq').innerHTML = `scena ${pl(S.ev, 1)} + ISO ${P.isoSt >= 0 ? '+' : '−'}${pl(Math.abs(P.isoSt), 1)}<br>− kamera log₂(N²/t) ${pl(P.evCam, 1)} − ND ${P.nd}<br>= <b style="color:var(--text)">${fmtEv(d)} EV</b>`;
+  // statystyki
+  const layers = P.scn.photo ? [] : sceneLayers(S.scene);
+  const far = layers.length ? layers[0] : null, near = layers.length ? layers[layers.length - 1] : null;
+  const bgPx = P.scn.photo ? (S.photoBlur ? P.coc(P.sSubj + S.photoBg) : 0) : P.coc(far.off === Infinity ? 1e5 : P.sSubj + far.off);
+  const fgPx = near && near.off < 0 ? P.coc(P.sSubj + near.off) : null;
+  const slow = S.play === '25' ? P.F / 25 : 1;
+  const rows = [
+    ['Ostrość', fmtDist(P.focus)],
+    ['Głębia ostr.', `${fmtDist(P.near).replace(' m', '')}–${fmtDist(P.far)}`],
+    [P.scn.photo ? 'Tło (przybliż.)' : 'Rozmycie tła', `${pl(bgPx, bgPx < 10 ? 1 : 0)} px`],
+  ];
+  if (fgPx !== null) rows.push(['Pierwszy plan', `${pl(fgPx, fgPx < 10 ? 1 : 0)} px`]);
+  rows.push(['Klatka/migawka', `${pl(P.frameMs, 1)} / ${pl(P.t * 1000, P.t < 0.005 ? 2 : 1)} ms`]);
+  if (P.scn.motion) rows.push(['Rozmycie ruchu', `${pl(P.motionPx, 1)} px`], ['Skok między kl.', `${Math.round(P.vpx / P.F)} px`]);
+  rows.push(['Tempo', slow === 1 ? 'rzeczywiste' : slow > 1 ? `zwolnione ${pl(slow, slow % 1 ? 2 : 0)}×` : `przyspieszone ${pl(1 / slow, 2)}×`]);
+  const nw = noiseWord(P.noiseMid);
+  rows.push(['Szum (średnie)', `<span class="${nw[1]}">${pl(P.noiseMid * 100, 1)}%</span>`]);
+  $('#stats').innerHTML = rows.map(r => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('');
+  drawTimeline(P);
+  // dlaczego?
+  const why = [];
+  if (Math.abs(d) <= 0.33) why.push(`<p><span class="k" style="background:var(--good)"></span><b>Ekspozycja poprawna.</b> Światło sceny, przysłona, migawka i filtr ND dostarczają tyle światła, ile potrzeba przy wzmocnieniu ISO ${ISO_L[S.iso]}.</p>`);
+  else if (d < 0) why.push(`<p><span class="k" style="background:#2d6fd6"></span><b>Niedoświetlenie o ${pl(-d, 1)} EV</b> — do matrycy dociera za mało światła względem wzmocnienia. <span class="why-edu">Rozjaśnisz obraz, otwierając przysłonę, wydłużając migawkę (najdłużej 1/${S.fps} s przy ${S.fps} FPS)${P.nd ? ', zdejmując filtr ND' : ''} albo podnosząc ISO (kosztem szumu).</span></p>`);
+  else why.push(`<p><span class="k" style="background:var(--bad)"></span><b>Prześwietlenie o ${pl(d, 1)} EV</b> — jasne partie przekroczyły zakres i straciły szczegóły${VB.clip > 0.002 ? ` (obcięte ${pl(VB.clip * 100, 1)}% kadru)` : ''}. <span class="why-edu">Przymknij przysłonę, skróć migawkę, załóż filtr ND lub obniż ISO.</span></p>`);
+  why.push(`<p><span class="k" style="background:#9aa3b2"></span><b>Szum ${nw[0]}</b> (${pl(P.noiseMid * 100, 1)}% w tonach średnich, ${pl(Math.min(P.noiseSh, 9.99) * 100, 0)}% w cieniach). <span class="why-edu">Zależy od ilości zebranego światła (${P.L >= 0 ? 'dużo' : `${pl(-P.L, 1)} EV mniej niż przy ISO 100`}) i wzmocnienia ISO, a także od matrycy (${SENS[S.sensor].n}).${S.nr && nrSigma(P) > 0.15 ? ' Odszumianie w kamerze wygładza szum kosztem detali.' : ''} Prawdziwe kamery różnią się tu znacznie.</span></p>`);
+  const dofW = bgPx < 2 ? 'Tło jest praktycznie ostre' : bgPx < 8 ? 'Tło jest lekko rozmyte' : bgPx < 25 ? 'Tło jest wyraźnie rozmyte' : 'Tło jest bardzo mocno rozmyte';
+  why.push(`<p><span class="k" style="background:var(--cyan)"></span><b>${dofW}</b> (krążek ok. ${Math.round(bgPx)} px). <span class="why-edu">${P.scn.photo ? 'Na własnym zdjęciu to tylko przybliżenie bez mapy głębi.' : `Decydują: przysłona f/${F_L[S.f]}, ogniskowa ${FOC[S.foc]} mm, odległość ostrzenia ${fmtDist(P.focus)}, odległość tła i matryca ${SENS[S.sensor].s}. FPS nie ma na to wpływu.`}</span></p>`);
+  if (P.scn.motion) {
+    why.push(`<p><span class="k" style="background:var(--accent)"></span><b>Ruch:</b> między klatkami samochód przeskakuje o ${Math.round(P.vpx / P.F)} px, a w czasie otwarcia migawki (${Math.round(P.angle)}°) przesuwa się o ${pl(P.motionPx, 1)} px — to rozmycie ruchu. <span class="why-edu">${P.angle < 80 ? 'Krótka migawka zamraża fazy ruchu, ale w odtwarzaniu ruch wygląda na szarpany.' : Math.abs(P.angle - 180) < 8 ? 'Migawka 180° daje rozmycie odbierane jako naturalne.' : ''} ${slow > 1 ? `Materiał ${P.F} FPS odtwarzany w 25 FPS jest zwolniony ${pl(slow, slow % 1 ? 2 : 0)}×.` : ''}</span></p>`);
+  } else why.push(`<p class="why-edu"><span class="k" style="background:#555"></span>FPS (${S.fps}) nie zmienia jasności ani głębi ostrości — ogranicza tylko najdłuższy możliwy czas migawki do 1/${S.fps} s.</p>`);
+  if (S.play === 'real' && P.F > refresh.hz + 5) why.push(`<p class="wr">Twój monitor odświeża ok. ${Math.round(refresh.hz)} Hz, więc w czasie rzeczywistym nie pokaże wszystkich ${P.F} klatek na sekundę. Użyj „Odtwarzania 25 FPS”, pauzy lub próbkowania ruchu.</p>`);
+  if (P.N >= 16) why.push(`<p class="why-edu" style="color:var(--muted)">Przy f/${F_L[S.f]} prawdziwy obiektyw traciłby nieco ostrości przez dyfrakcję (niesymulowane).</p>`);
+  why.push('<p class="disc">Symulator edukacyjny — pokazuje prawidłowe zależności, ale nie jest fizycznie dokładnym modelem konkretnej kamery.</p>');
+  $('#why').innerHTML = why.join('');
+  // HUD
+  updateHud(P);
+}
+function drawTimeline(P) {
+  const c = $('#tline'), x = c.getContext('2d'), w = c.width, h = c.height;
+  x.clearRect(0, 0, w, h);
+  const span = 125, sc = (w - 20) / span, y0 = 30, bh = 18;
+  x.fillStyle = '#0b0d11'; x.fillRect(10, y0, w - 20, bh);
+  for (let k = 0; k * P.frameMs < span; k++) {
+    const t0 = k * P.frameMs;
+    x.fillStyle = 'rgba(245,165,36,0.85)'; x.fillRect(10 + t0 * sc, y0, Math.max(1.5, P.t * 1000 * sc), bh);
+    x.fillStyle = '#5d6676'; x.fillRect(10 + t0 * sc, y0 - 5, 1, bh + 10);
+  }
+  x.fillStyle = '#8b94a5'; x.font = '22px ui-monospace,Consolas,monospace';
+  x.fillText(`oś czasu · migawka otwarta ${Math.round(P.angle)}°`, 10, 22);
+  x.fillStyle = '#5d6676'; x.font = '15px ui-monospace,Consolas,monospace'; x.fillText('0', 10, h - 6); x.fillText(span + ' ms', w - 70, h - 6);
+}
+function updateHud(P) {
+  $('#hudTL').innerHTML = `<span class="rec">${playing ? 'REC' : 'PAUZA'}</span><span class="lbl">${S.fps}p</span>`;
+  $('#hudTR').textContent = `${fmtT(S.t)}  ${Math.round(P.angle)}°   f/${F_L[S.f]}   ISO ${ISO_L[S.iso]}${ND[S.nd].s ? '   ' + ND[S.nd].l : ''}`;
+  $('#hudBL').textContent = `${SCN[S.scene].name} · ${FOC[S.foc]} mm · ${SENS[S.sensor].s}`;
+  $('#hudBR').innerHTML = `<span style="color:${Math.abs(P.delta) <= 0.33 ? '#3ddc97' : Math.abs(P.delta) <= 1 ? '#ffcc4d' : '#ff6b6b'}">EXP ${fmtEv(P.delta)}</span>`;
+  const c = cmp.on;
+  ['#hudTL', '#hudTR', '#hudBL', '#hudBR'].forEach(s => $(s).hidden = c);
+  $('#hudA').hidden = $('#hudB').hidden = !c; $('#split').hidden = !(c && cmp.mode === 'split');
+  if (c) { $('#hudA').textContent = 'A · ' + descr(cmp.A); $('#hudB').textContent = 'B · ' + descr(S); }
+  $('#stage').classList.toggle('paused', !playing);
+}
+function drawHist(view) {
+  const c = $('#hist'), x = c.getContext('2d'), w = c.width, h = c.height, hs = view.hist;
+  x.clearRect(0, 0, w, h);
+  let mx = 1; for (let i = 0; i < 64; i++) if (hs[i] > mx) mx = hs[i];
+  const bw = w / 64;
+  x.fillStyle = 'rgba(255,255,255,0.04)'; for (let i = 1; i < 4; i++) x.fillRect(i * w / 4, 0, 1, h);
+  for (let i = 0; i < 64; i++) { const v = Math.sqrt(hs[i] / mx) * (h - 6); x.fillStyle = i >= 62 ? '#ff6b6b' : i <= 1 ? '#4c7cff' : '#c9d0db'; x.fillRect(i * bw, h - v, bw - 0.5, v); }
+  $('#clipInfo').innerHTML = view.clip > 0.002 ? `<span class="er">obcięte ${pl(view.clip * 100, 1)}%</span>` : '';
+}
+
+/* ---------- pętla odtwarzania ---------- */
+let playing = true, wclock = 0, lastNow = performance.now(), lastKey = '', lastVer = -1, histTick = 0;
+const refresh = { hz: 60, n: 0, acc: 0 };
+const dispC = $('#disp'), dispX = dispC.getContext('2d');
+function sceneRate() { return S.play === '25' ? 25 : S.fps; }
+function preserveTime(fn) { // zmiana FPS / trybu odtwarzania nie powoduje skoku czasu sceny
+  const tScene = Math.floor(wclock * sceneRate() + 1e-6) / S.fps;
+  fn();
+  wclock = S.play === '25' ? tScene * S.fps / 25 : tScene;
+  wclock += 1e-7;
+}
+function tick(now) {
+  let dt = (now - lastNow) / 1000; lastNow = now;
+  if (dt > 0 && dt < 0.1) { refresh.acc += dt; refresh.n++; if (refresh.n >= 60) { refresh.hz = refresh.n / refresh.acc; refresh.n = 0; refresh.acc = 0; } }
+  if (playing) wclock += Math.min(dt, 0.1);
+  if (wclock > 3600) wclock = 0;
+  const PB = derive(S), kB = viewTime(PB, wclock).k;
+  let key = kB + '|' + ver + '|' + cmp.on + cmp.mode + (cmp.on ? Math.round(cmp.x * 1000) : '');
+  let PA = null;
+  if (cmp.on) { PA = derive(Object.assign({}, S, cmp.A, { scene: S.scene, play: S.play })); key += '|' + viewTime(PA, wclock).k; }
+  if (key !== lastKey) {
+    lastKey = key;
+    if (!(PB.scn.photo && !PHOTO.canvas)) {
+      renderView(PB, wclock, VB, S.zebra, true);
+      if (cmp.on) renderView(PA, wclock, VA, S.zebra, false);
+      present(PB, PA);
+      if (++histTick % 2 === 0 || lastVer !== ver) drawHist(VB);
+    } else { dispX.fillStyle = '#0a0c0f'; dispX.fillRect(0, 0, dispC.width, dispC.height); }
+    if (lastVer !== ver) { lastVer = ver; updateText(PB); }
+    updateTimecode(PB);
+  }
+  requestAnimationFrame(tick);
+}
+function present(PB, PA) {
+  if (cmp.on && cmp.mode === 'side') {
+    if (dispC.width !== 2 * W + 16) { dispC.width = 2 * W + 16; fitView(); }
+    dispX.fillStyle = '#0a0c0f'; dispX.fillRect(0, 0, dispC.width, H);
+    dispX.drawImage(VA.c, 0, 0); dispX.drawImage(VB.c, W + 16, 0);
+    drawOnion(PA, VA, 0); drawOnion(PB, VB, W + 16);
+    return;
+  }
+  if (dispC.width !== W) { dispC.width = W; fitView(); }
+  if (cmp.on) {
+    const sx = Math.round(cmp.x * W);
+    dispX.drawImage(VA.c, 0, 0);
+    if (sx < W) dispX.drawImage(VB.c, sx, 0, W - sx, H, sx, 0, W - sx, H);
+    $('#split').style.left = (cmp.x * 100) + '%';
+  } else { dispX.drawImage(VB.c, 0, 0); drawOnion(PB, VB, 0); }
+}
+function drawOnion(P, view, ox) {
+  if (!S.onion || !P.scn.motion) return;
+  const car = sceneLayers(S.scene).find(L => L.dynamic);
+  dispX.save(); dispX.beginPath(); dispX.rect(ox, 0, W, H); dispX.clip();
+  dispX.font = '600 13px Segoe UI, Arial'; dispX.textAlign = 'center';
+  for (let j = 5; j >= 0; j--) {
+    const bb = car.bbox((view.k - j) / P.F, P.vpx), fx = ox + bb[0] + bb[2];
+    const a = j === 0 ? 1 : 0.75 - j * 0.1;
+    dispX.strokeStyle = j === 0 ? `rgba(245,165,36,${a})` : `rgba(76,195,255,${a})`; dispX.lineWidth = j === 0 ? 2.5 : 1.5;
+    dispX.beginPath(); dispX.moveTo(fx, bb[1] - 18); dispX.lineTo(fx, bb[1] + bb[3]); dispX.stroke();
+    dispX.fillStyle = dispX.strokeStyle; if (j === 0 || P.vpx / P.F > 26) dispX.fillText(j === 0 ? 'teraz' : '−' + j, fx, bb[1] - 24);
+  }
+  dispX.fillStyle = 'rgba(0,0,0,0.55)'; dispX.fillRect(ox + 10, H - 64, 330, 26); dispX.fillStyle = '#fff'; dispX.textAlign = 'left';
+  dispX.fillText(`Pozycje przodu auta w kolejnych klatkach (co ${pl(P.frameMs, 1)} ms)`, ox + 18, H - 46);
+  dispX.restore();
+}
+function updateTimecode(P) {
+  const k = VB.k, F = P.F, s = Math.floor(k / F), ff = k % F;
+  const tc = `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}:${String(ff).padStart(F >= 100 ? 3 : 2, '0')}`;
+  const slow = S.play === '25' ? P.F / 25 : 1;
+  $('#timecode').innerHTML = `<b>${tc}</b> · kl. ${k}${slow > 1.01 ? ` · <span style="color:var(--accent)">${pl(slow, slow % 1 ? 2 : 0)}× wolniej</span>` : ''}`;
+}
+function fitView() {
+  const st = $('#stage').getBoundingClientRect(), ar = dispC.width / dispC.height;
+  let w = st.width - 20, h = w / ar;
+  if (h > st.height - 20) { h = st.height - 20; w = h * ar; }
+  const v = $('#view'); v.style.width = Math.max(100, w) + 'px'; v.style.height = Math.max(56, h) + 'px';
+}
+
+/* ---------- akcje: sceny, presety, auto, reset ---------- */
+function loadScene(id, opts = {}) {
+  S.scene = id;
+  const d = SCN[id].def;
+  if (!opts.keep) {
+    Object.assign(S, { ev: d.ev, iso: d.iso, f: d.f, t: d.t, fps: d.fps, nd: d.nd, foc: d.foc, focusOff: 0, mode: 'speed', lock180: false, sensor: 'ff', speed: 30 });
+    applyShutter('t');
+  }
+  if (exState.active && EXS.find(e => e.id === exState.active).scene !== id) setExercise(null);
+  ver++; syncUI();
+  if (!opts.silent) for (const k in EDU_DEFAULT) showEdu(k, EDU_DEFAULT[k]);
+  if (cmp.on) cmp.A = camSnap(S);
+}
+const PRESETS = [
+  { n: 'Portret', d: '25p · 1/50 s · f/2 · 85 mm — miękkie tło', set: { fps: 25, t: 1 / 50, f: 3, foc: 7, lock180: false, mode: 'speed', focusOff: 0 } },
+  { n: 'Film 25 FPS', d: '25p · zasada 180° (1/50 s) · f/2.8 · 50 mm', set: { fps: 25, lock180: true, f: 6, foc: 5 } },
+  { n: 'Sport', d: '50p · 1/1000 s · f/4 · 135 mm — zamrożony ruch', set: { fps: 50, t: 1 / 1000, lock180: false, mode: 'speed', f: 9, foc: 9 } },
+  { n: 'Noc', d: '25p · 1/50 s · f/1.4 · 35 mm — maksimum światła', set: { fps: 25, t: 1 / 50, f: 0, foc: 4, lock180: false, mode: 'speed', nd: 0 } },
+  { n: 'Wywiad telewizyjny', d: '25p · 1/50 s · f/4 · 50 mm — ostra postać, czytelne tło', set: { fps: 25, t: 1 / 50, f: 9, foc: 5, lock180: false, mode: 'speed', focusOff: 0 } },
+];
+function applyPreset(p) {
+  Object.assign(S, p.set); applyShutter('fps');
+  const ch = autoExpose(false);
+  ver++; syncUI();
+  toast(`Preset „${p.n}”: ${p.d}.${ch.length ? ' Ekspozycję wyrównano: ' + ch.join(', ') + '.' : ''}`);
+  showEdu('f', `Preset „${p.n}” ustawia przysłonę, migawkę, FPS i ogniskową zgodnie z celem ujęcia. Ekspozycję dopasowano tylko filtrem ND i ISO, aby nie zmieniać charakteru obrazu (głębi ostrości i ruchu).`);
+}
+// Dobór ekspozycji: przy niedoświetleniu najpierw zdejmujemy ND (darmowe światło), potem ISO;
+// przy prześwietleniu najpierw ISO w dół (do 100), potem ND, potem drobna korekta ISO.
+// Przysłona i migawka (charakter obrazu) — tylko gdy dozwolone i na końcu.
+function autoExpose(allowFT) {
+  const changed = new Set();
+  const dl = () => derive(S).delta;
+  const isoFix = (cap = 21) => { const n = clamp(Math.round(S.iso - dl() * 3), 0, Math.max(cap, Math.min(S.iso, 21))); if (n !== S.iso) { S.iso = n; changed.add('iso'); } };
+  const ndFix = () => {
+    const d = dl(), cur = ND[S.nd].s, target = cur + d; let bi = S.nd;
+    if (d < 0) { bi = 0; ND.forEach((n, i) => { if (n.s <= Math.max(0, target) + 0.01 && n.s >= ND[bi].s) bi = i; }); }
+    else { bi = ND.length - 1; for (let i = ND.length - 1; i >= 0; i--) if (ND[i].s >= target - 0.17) bi = i; if (ND[bi].s < cur) bi = S.nd; }
+    if (bi !== S.nd) { S.nd = bi; changed.add('nd'); }
+  };
+  const fFix = () => { const n = clamp(Math.round(S.f + dl() * 3), 0, 24); if (n !== S.f) { S.f = n; changed.add('f'); } };
+  const tFix = () => { if (S.lock180) return; let t = Math.min(S.t * Math.pow(2, -dl()), 1 / S.fps); if (S.mode === 'speed') { t = 1 / SH[nearestSH(t)]; if (t > 1 / S.fps) t = 1 / S.fps; } if (Math.abs(t - S.t) > 1e-9) { S.t = t; applyShutter('t'); changed.add('t'); } };
+  const ok = () => Math.abs(dl()) < 0.17;
+  if (dl() < 0) {
+    ndFix();
+    if (!ok()) isoFix(allowFT ? 12 : 21);                     // automatyka nie podnosi ISO ponad 1600, dopóki może otworzyć przysłonę
+    if (allowFT && !ok()) { fFix(); if (!ok() && S.t < 1 / (2 * S.fps)) { const keep = S.t; tFix(); if (S.t > 1 / (2 * S.fps)) { S.t = Math.max(keep, 1 / (2 * S.fps)); applyShutter('t'); } } }
+    if (!ok()) isoFix();
+  } else {
+    isoFix(); if (!ok()) { ndFix(); isoFix(); }
+    if (allowFT && !ok()) { fFix(); if (!ok()) { tFix(); isoFix(); } }
+  }
+  const names = { iso: `ISO ${ISO_L[S.iso]}`, nd: ND[S.nd].s ? ND[S.nd].l : 'bez ND', f: `f/${F_L[S.f]}`, t: `migawka ${fmtT(S.t)} s` };
+  return [...changed].map(k => names[k]);
+}
+function doAuto() {
+  const before = derive(S).delta;
+  const ch = autoExpose(true);
+  ver++; syncUI();
+  const d = derive(S).delta;
+  if (!ch.length) { toast(Math.abs(before) < 0.17 ? 'Ekspozycja jest już poprawna.' : 'Nie da się poprawić ekspozycji w dostępnym zakresie ustawień.'); return; }
+  toast(`Automatyczna ekspozycja: ${ch.join(', ')} (${fmtEv(before)} → ${fmtEv(d)} EV).`);
+  showEdu('iso', `Automatyka zmieniła: <b>${ch.join(', ')}</b>. Kolejność: przy niedoświetleniu najpierw zdejmowany jest filtr ND (to „darmowe” światło), potem rośnie ISO; przy prześwietleniu najpierw ISO spada do 100, potem dokładany jest filtr ND. Przysłona i migawka zmieniają charakter obrazu (głębię ostrości i ruch), więc są ruszane na końcu. ${Math.abs(d) > 0.4 ? 'Pełna korekta nie była możliwa w zakresie ustawień.' : ''}`);
+}
+function doReset() {
+  loadScene(S.scene);
+  S.nr = true; S.zebra = false; S.onion = false; S.photoBlur = true; S.photoBg = 6; S.photoR = 0.32; S.photoFx = 0.5; S.photoFy = 0.45;
+  ver++; syncUI(); toast('Przywrócono ustawienia domyślne sceny.');
+}
+
+/* ---------- ćwiczenia: logika ---------- */
+function setExercise(id) {
+  exState.active = id;
+  document.querySelectorAll('.ex').forEach(el => el.classList.toggle('active', el.id === 'ex-' + id));
+  const b = $('#exbanner');
+  if (!id) { b.hidden = true; return; }
+  const e = EXS.find(x => x.id === id);
+  b.hidden = false;
+  b.innerHTML = `<svg class="i" style="color:var(--accent)"><use href="#i-target"/></svg><div class="g"><b>Ćwiczenie: ${e.t}</b> — ${e.goal}<div class="fbk" id="exbfb"></div></div>
+    <button class="tb sm pri" id="exbCheck">${ic('i-check')}Sprawdź</button><button class="tb sm" id="exbEnd" title="Zakończ ćwiczenie">${ic('i-x')}</button>`;
+  $('#exbCheck').onclick = () => checkExercise(id);
+  $('#exbEnd').onclick = () => setExercise(null);
+}
+function startExercise(id) {
+  const e = EXS.find(x => x.id === id);
+  if (cmp.on) endCompare();
+  loadScene(e.scene, { silent: true });
+  Object.assign(S, e.start); if (e.start.play) S.play = e.start.play;
+  applyShutter('fps'); ver++; syncUI();
+  setExercise(id);
+  $('#fb-' + id).innerHTML = '<div class="note">Ćwiczenie rozpoczęte — zmieniaj ustawienia i kliknij „Sprawdź”.</div>';
+  playing = true;
+}
+function checkExercise(id) {
+  const e = EXS.find(x => x.id === id);
+  if (S.scene !== e.scene) { $('#fb-' + id).innerHTML = `<div class="wr">To ćwiczenie dotyczy sceny „${SCN[e.scene].name}”. Kliknij „Rozpocznij”.</div>`; return; }
+  const P = derive(S), res = e.check(P), ok = res.every(r => r.ok);
+  const html = res.map(r => `<div class="${r.ok ? 'ok' : 'er'}">${r.ok ? '✓' : '✗'} ${r.t}</div>`).join('') +
+    (ok ? `<div class="tip"><b class="ok">Świetnie — zadanie wykonane!</b> ${e.why}</div>` : `<div class="tip">${e.hint}</div>`);
+  $('#fb-' + id).innerHTML = html;
+  const bf = $('#exbfb'); if (bf && exState.active === id) bf.innerHTML = ok ? `<span class="ok">✓ Zadanie wykonane! ${e.why}</span>` : res.filter(r => !r.ok).map(r => `<span class="er">✗ ${r.t}</span>`).join(' · ');
+  if (ok) { exState.done.add(id); try { localStorage.setItem('kadr.done', JSON.stringify([...exState.done])); } catch (er) {} markDone(); }
+}
+function markDone() { EXS.forEach(e => $('#ex-' + e.id).classList.toggle('done', exState.done.has(e.id))); }
+
+/* ---------- porównanie ---------- */
+function startCompare() { cmp.on = true; cmp.A = camSnap(S); cmp.mode = cmp.mode || 'split'; $('#cmpbar').hidden = false; $('#btnCompare').classList.add('on'); setSeg('Cmp', cmp.mode); document.querySelectorAll('#segCmp button').forEach(b => b.classList.toggle('on', b.dataset.v === cmp.mode)); ver++; updateHud(derive(S)); toast('Obraz A zapamiętany. Zmieniaj ustawienia — obraz B pokazuje bieżące.'); }
+function endCompare() { cmp.on = false; $('#cmpbar').hidden = true; $('#btnCompare').classList.remove('on'); dispC.width = W; fitView(); ver++; updateHud(derive(S)); }
+
+/* ---------- zapisywanie ---------- */
+function download(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 3000); }
+const stamp = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
+function captionBar(x, y, w, label, st, col) {
+  x.fillStyle = '#11141a'; x.fillRect(0, y, w, 54);
+  x.fillStyle = col; x.font = '700 18px Segoe UI, Arial'; x.fillText(label, 14, y + 22);
+  x.fillStyle = '#c9d0db'; x.font = '15px Consolas, monospace';
+  const P = derive(Object.assign({}, S, st, { scene: S.scene }));
+  x.fillText(`${descr(st)} · ${SENS[st.sensor].s} · ekspozycja ${fmtEv(P.delta)} EV · scena EV ${pl(st.ev, 1)}`, 14, y + 44);
+}
+function saveShot() {
+  const c = mk(W, H + 54), x = c.getContext('2d'); x.drawImage(VB.c, 0, 0);
+  captionBar(x, H, W, `KADR · ${SCN[S.scene].name}`, camSnap(S), '#f5a524');
+  c.toBlob(b => download(b, `kadr-${S.scene}-${stamp()}.png`));
+  toast('Zapisano kadr jako PNG.');
+}
+function saveCompareShot() {
+  const gap = 16, c = mk(2 * W + gap, H + 54 + 30), x = c.getContext('2d');
+  x.fillStyle = '#0a0c0f'; x.fillRect(0, 0, c.width, c.height);
+  x.fillStyle = '#e8ebf1'; x.font = '600 16px Segoe UI, Arial'; x.fillText(`KADR — porównanie ustawień · scena: ${SCN[S.scene].name} · symulator edukacyjny`, 14, 20);
+  x.drawImage(VA.c, 0, 30); x.drawImage(VB.c, W + gap, 30);
+  x.save(); captionBar(x, H + 30, W, 'A — ustawienia początkowe', cmp.A, '#4cc3ff'); x.translate(W + gap, 0); captionBar(x, H + 30, W, 'B — ustawienia zmienione', camSnap(S), '#f5a524'); x.restore();
+  c.toBlob(b => download(b, `kadr-porownanie-${stamp()}.png`));
+  toast('Zapisano zrzut porównania (PNG).');
+}
+function savedList() { try { return JSON.parse(localStorage.getItem('kadr.saved') || '[]'); } catch (e) { return []; } }
+function renderSaved() {
+  const l = savedList();
+  $('#savedList').innerHTML = l.length ? l.map((s, i) => `<div class="it"><div><b>${esc(s.name)}</b><small>${SCN[s.data.scene] ? SCN[s.data.scene].name : ''} · ${descr(s.data)}</small></div><button class="tb sm" data-load="${i}">Wczytaj</button><button class="ib" data-del="${i}" title="Usuń">${ic('i-x')}</button></div>`).join('') : '<div class="note">Brak zapisanych ustawień.</div>';
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function applySnap(d) {
+  if (!d || typeof d !== 'object') throw new Error('zły format');
+  const id = SCN[d.scene] ? d.scene : S.scene;
+  if (id === 'photo' && !PHOTO.canvas) toast('Te ustawienia dotyczą własnego zdjęcia — wczytaj je ponownie.');
+  S.scene = id;
+  CAM_KEYS.forEach(k => { if (k in d) S[k] = k === 'focusOff' && d[k] === null ? Infinity : d[k]; });
+  if (d.play) S.play = d.play;
+  S.iso = clamp(S.iso | 0, 0, 21); S.f = clamp(S.f | 0, 0, 24); S.nd = clamp(S.nd | 0, 0, ND.length - 1); S.foc = clamp(S.foc | 0, 0, FOC.length - 1);
+  if (!FPS_L.includes(S.fps)) S.fps = 25; if (!SENS[S.sensor]) S.sensor = 'ff';
+  applyShutter('fps'); ver++; syncUI();
+}
+function snapJson() { const d = camSnap(S); if (!isFinite(d.focusOff)) d.focusOff = null; return d; }
+
+/* ---------- zdjęcie użytkownika ---------- */
+function loadPhotoFile(file) {
+  if (!file) return;
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { toast('Obsługiwane formaty: JPG, PNG, WebP.'); return; }
+  const r = new FileReader();
+  r.onload = () => { const img = new Image(); img.onload = () => { setPhoto(img, file.name); if (S.scene !== 'photo') loadScene('photo'); else { ver++; syncUI(); } toast('Wczytano zdjęcie. Kliknij na obiekt, który ma być ostry.'); }; img.onerror = () => toast('Nie udało się odczytać zdjęcia.'); img.src = r.result; };
+  r.readAsDataURL(file);
+}
+
+let toastT = 0;
+function toast(msg) { const t = $('#toast'); t.innerHTML = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3800); }
+/* ---------- zdarzenia i start ---------- */
+function bindSlider(id, key, conv) {
+  const el = $('#r-' + id);
+  el.addEventListener('input', () => {
+    if (!dragFrom[key]) dragFrom[key] = { v: S[key], P: derive(S) };
+    setVal(key, conv(+el.value), 'ui');
+  });
+  el.addEventListener('change', () => { delete dragFrom[key]; syncUI(); });
+}
+function bindSeg(id, fn) { $('#s-' + id).addEventListener('click', e => { const b = e.target.closest('button'); if (b && !b.disabled) fn(b.dataset.v); }); }
+
+function init() {
+  // sceny
+  $('#scenes').innerHTML = SCN_ORDER.map(id => `<button data-s="${id}" title="${SCN[id].about}">${ic(SCN[id].icon)}${SCN[id].name}</button>`).join('');
+  $('#scenes').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.s === 'photo' && !PHOTO.canvas) { loadScene('photo'); return; } loadScene(b.dataset.s); toast(SCN[b.dataset.s].about); });
+  buildSide();
+  // podziałka wskaźnika ekspozycji
+  $('#meter').insertAdjacentHTML('beforeend', [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map(v => `<span class="tk" style="left:${(v + 5) * 10}%">${v === 0 ? '0' : v > 0 ? '+' + v : '−' + -v}</span>`).join(''));
+
+  bindSlider('ev', 'ev', v => v);
+  bindSlider('iso', 'iso', v => v);
+  bindSlider('f', 'f', v => v);
+  bindSlider('speed', 'speed', v => v);
+  bindSlider('foc', 'foc', v => v);
+  bindSlider('pbg', 'photoBg', v => v);
+  bindSlider('pr', 'photoR', v => v);
+  const rs = $('#r-sh');
+  rs.addEventListener('input', () => {
+    const key = S.mode === 'speed' ? 't' : 'angle';
+    if (!dragFrom[key]) dragFrom[key] = { v: S[key], P: derive(S) };
+    if (S.mode === 'speed') setVal('t', 1 / SH[+rs.value], 'ui');
+    else { let a = +rs.value; if (Math.abs(a - 180) < 2.5) a = 180; setVal('angle', a, 'ui'); }
+  });
+  rs.addEventListener('change', () => { delete dragFrom.t; delete dragFrom.angle; syncUI(); });
+  const rf = $('#r-focus');
+  rf.addEventListener('input', () => {
+    if (!dragFrom.focusOff) dragFrom.focusOff = { v: S.focusOff, P: derive(S) };
+    const m = posToFocus(+rf.value), P = derive(S);
+    setVal('focusOff', isFinite(m) ? m - P.sSubj : Infinity, 'ui');
+  });
+  rf.addEventListener('change', () => { delete dragFrom.focusOff; syncUI(); });
+  bindSeg('nd', v => setVal('nd', +v, 'ui'));
+  bindSeg('fps', v => preserveTime(() => setVal('fps', +v, 'ui')));
+  bindSeg('mode', v => setVal('mode', v, 'ui'));
+  bindSeg('sensor', v => setVal('sensor', v, 'ui'));
+  $('#w-lock').addEventListener('change', e => setVal('lock180', e.target.checked, 'ui'));
+  $('#w-onion').addEventListener('change', e => { S.onion = e.target.checked; ver++; });
+  $('#w-nr').addEventListener('change', e => setVal('nr', e.target.checked, 'ui'));
+  $('#w-zebra').addEventListener('change', e => setVal('zebra', e.target.checked, 'ui'));
+  $('#w-pblur').addEventListener('change', e => setVal('photoBlur', e.target.checked, 'ui'));
+  $('#btnFocusSubj').onclick = () => setVal('focusOff', 0, 'ui');
+  $('#goMotion').onclick = e => { e.preventDefault(); loadScene('motion'); };
+  // sekcje zwijane
+  document.querySelectorAll('.sec>h3').forEach(h => h.addEventListener('click', () => h.parentElement.classList.toggle('closed')));
+  // zakładki
+  document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+    $('#tab-cam').hidden = b.dataset.tab !== 'cam'; $('#tab-ex').hidden = b.dataset.tab !== 'ex';
+  }));
+  $('#tab-ex').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.exstart) startExercise(b.dataset.exstart);
+    if (b.dataset.excheck) checkExercise(b.dataset.excheck);
+    if (b.dataset.exhint) { const ex = EXS.find(x => x.id === b.dataset.exhint); $('#fb-' + ex.id).innerHTML = `<div class="tip">${ex.hint}</div>`; }
+  });
+  markDone();
+  // pasek narzędzi
+  $('#btnPlay').onclick = togglePlay;
+  $('#btnFwd').onclick = () => step(1);
+  $('#btnBack').onclick = () => step(-1);
+  $('#segPlay').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; preserveTime(() => setVal('play', b.dataset.v)); toast(b.dataset.v === '25' ? `Odtwarzanie 25 FPS: każda zarejestrowana klatka trwa 40 ms. Materiał ${S.fps} FPS ${S.fps > 25 ? `jest zwolniony ${pl(S.fps / 25, S.fps % 25 ? 2 : 0)}×` : S.fps < 25 ? 'jest lekko przyspieszony' : 'odtwarza się w czasie rzeczywistym'}.` : 'Czas rzeczywisty: klatki wyświetlane są w tempie nagrania.'); });
+  $('#btnAuto').onclick = doAuto;
+  $('#btnReset').onclick = doReset;
+  $('#btnShot').onclick = saveShot;
+  $('#btnCompare').onclick = () => cmp.on ? endCompare() : startCompare();
+  $('#btnCmpEnd').onclick = endCompare;
+  $('#btnSetA').onclick = () => { cmp.A = camSnap(S); ver++; updateHud(derive(S)); toast('Bieżące ustawienia zapamiętane jako A.'); };
+  $('#btnSwap').onclick = () => { const a = cmp.A; cmp.A = camSnap(S); applySnap(a); };
+  $('#btnCmpShot').onclick = saveCompareShot;
+  $('#segCmp').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; cmp.mode = b.dataset.v; document.querySelectorAll('#segCmp button').forEach(x => x.classList.toggle('on', x === b)); ver++; updateHud(derive(S)); });
+  // suwak przed/po
+  const split = $('#split');
+  const moveSplit = e => { const r = dispC.getBoundingClientRect(); cmp.x = clamp((e.clientX - r.left) / r.width, 0, 1); };
+  split.addEventListener('pointerdown', e => { split.setPointerCapture(e.pointerId); moveSplit(e); split.onpointermove = moveSplit; });
+  split.addEventListener('pointerup', () => { split.onpointermove = null; });
+  // presety
+  $('#menuPresets').innerHTML = PRESETS.map((p, i) => `<button data-p="${i}">${p.n}<small>${p.d}</small></button>`).join('');
+  $('#btnPresets').onclick = e => { e.stopPropagation(); $('#menuPresets').hidden = !$('#menuPresets').hidden; };
+  $('#menuPresets').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; $('#menuPresets').hidden = true; applyPreset(PRESETS[+b.dataset.p]); });
+  document.addEventListener('click', e => { if (!e.target.closest('.dd')) $('#menuPresets').hidden = true; });
+  // kliknięcie w podgląd: ostrość
+  dispC.addEventListener('click', e => {
+    const r = dispC.getBoundingClientRect();
+    let x = (e.clientX - r.left) / r.width * dispC.width, y = (e.clientY - r.top) / r.height * dispC.height;
+    if (cmp.on && cmp.mode === 'side') { if (x < W + 16) return; x -= W + 16; }
+    if (S.scene === 'photo') { if (!PHOTO.canvas) return; S.photoFx = x / W; S.photoFy = y / H; ver++; syncUI(); toast('Strefa ostrości przesunięta w wybrane miejsce (przybliżenie).'); return; }
+    const L = pickLayer(x, y);
+    if (L) { setVal('focusOff', L.off, 'ui'); toast(`Ostrość: ${L.name} (${fmtDist(derive(S).focus)})`); }
+  });
+  // modale
+  $('#btnHelp').onclick = () => $('#mHelp').hidden = false;
+  document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m || e.target.closest('[data-close]')) m.hidden = true; }));
+  $('#btnSave').onclick = () => { $('#saveName').value = `${SCN[S.scene].name} · f/${F_L[S.f]} · ${fmtT(S.t)} · ISO ${ISO_L[S.iso]}`; renderSaved(); $('#mSave').hidden = false; };
+  $('#btnSaveDo').onclick = () => {
+    const l = savedList(); l.unshift({ name: $('#saveName').value.trim() || 'Bez nazwy', data: snapJson() });
+    try { localStorage.setItem('kadr.saved', JSON.stringify(l.slice(0, 40))); toast('Zapisano ustawienia w przeglądarce.'); } catch (e) { toast('Przeglądarka nie pozwala zapisywać danych — użyj eksportu do pliku.'); }
+    renderSaved();
+  };
+  $('#savedList').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return; const l = savedList();
+    if (b.dataset.load) { applySnap(l[+b.dataset.load].data); $('#mSave').hidden = true; toast('Wczytano: ' + esc(l[+b.dataset.load].name)); }
+    if (b.dataset.del) { l.splice(+b.dataset.del, 1); try { localStorage.setItem('kadr.saved', JSON.stringify(l)); } catch (er) {} renderSaved(); }
+  });
+  $('#btnExport').onclick = () => download(new Blob([JSON.stringify({ app: 'KADR', version: 1, settings: snapJson() }, null, 2)], { type: 'application/json' }), `kadr-ustawienia-${stamp()}.json`);
+  $('#btnImport').onclick = () => $('#fileJson').click();
+  $('#fileJson').addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; f.text().then(t => { const j = JSON.parse(t); applySnap(j.settings || j); $('#mSave').hidden = true; toast('Zaimportowano ustawienia.'); }).catch(() => toast('Nieprawidłowy plik ustawień.')); e.target.value = ''; });
+  // zdjęcie
+  const pick = () => $('#filePhoto').click();
+  $('#btnPhotoPick').onclick = pick; $('#btnPhoto2').onclick = pick;
+  $('#filePhoto').addEventListener('change', e => { loadPhotoFile(e.target.files[0]); e.target.value = ''; });
+  const stg = $('#stage');
+  stg.addEventListener('dragover', e => { e.preventDefault(); });
+  stg.addEventListener('drop', e => { e.preventDefault(); loadPhotoFile(e.dataTransfer.files[0]); });
+  // wskazówki
+  $('#edu').addEventListener('change', e => document.body.classList.toggle('noedu', !e.target.checked));
+  // klawiatura
+  document.addEventListener('keydown', e => {
+    if (e.target.matches('input.inp')) return;
+    if (e.key === 'Escape') { document.querySelectorAll('.modal').forEach(m => m.hidden = true); $('#menuPresets').hidden = true; return; }
+    if (e.target.matches('input[type=range]') && (e.key.startsWith('Arrow') || e.key === 'Home' || e.key === 'End')) return;
+    if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+    else if (e.key === 'c' || e.key === 'C') cmp.on ? endCompare() : startCompare();
+    else if (e.key === 'h' || e.key === 'H') $('#mHelp').hidden = !$('#mHelp').hidden;
+  });
+  new ResizeObserver(fitView).observe($('#stage'));
+  loadScene('portrait');
+  fitView();
+  requestAnimationFrame(t => { lastNow = t; requestAnimationFrame(tick); });
+}
+function pickLayer(x, y) {
+  const P = derive(S), layers = sceneLayers(S.scene);
+  for (let i = layers.length - 1; i >= 0; i--) {
+    const L = layers[i];
+    if (L.dynamic) { const b = L.bbox(VB.t, P.vpx); if (x >= b[0] && x <= b[0] + b[2] && y >= b[1] && y <= b[1] + b[3]) return L; continue; }
+    if (L.canvas.getContext('2d').getImageData(clamp(x | 0, 0, W - 1), clamp(y | 0, 0, H - 1), 1, 1).data[3] > 140) return L;
+  }
+  return null;
+}
+function togglePlay() { playing = !playing; $('#btnPlay').innerHTML = ic(playing ? 'i-pause' : 'i-play'); updateHud(derive(S)); if (!playing) toast('Pauza — klatka zatrzymana. Strzałki ← → przełączają pojedyncze klatki.'); }
+function step(dir) {
+  if (playing) togglePlay();
+  const r = sceneRate();
+  wclock = Math.max(0, (Math.floor(wclock * r + 1e-6) + dir) / r + 1e-7);
+}
+
+</script>
+<script>
+/* =====================================================================
+   KADR mobile — zadania na zajęcia (zastępują ćwiczenia z wersji desktop)
+   ===================================================================== */
+const close = (a, b, abs, rel) => Math.abs(a - b) <= Math.max(abs, rel * Math.max(Math.abs(a), Math.abs(b)));
+const evKeep = (ev) => ({ ok: Math.abs(S.ev - ev) < 0.01, t: Math.abs(S.ev - ev) < 0.01 ? 'Światło sceny bez zmian' : `Przywróć oświetlenie sceny EV ${pl(ev, 1)} — to warunki, a nie ustawienie kamery` });
+const tgtP = e => derive(Object.assign({}, S, e.target, { scene: e.scene, play: S.play }));
+const NEW_EXS = [
+  { id: 'm_nd', t: 'Wywiad w słońcu', scene: 'portrait', lvl: 'Filtr ND',
+    goal: 'Jest bardzo jasno (EV 14,5). Zostaw przysłonę f/2.8 lub szerszą, 25 FPS i migawkę 180° (1/50 s). ISO maks. 200. Uzyskaj poprawną ekspozycję.',
+    start: { ev: 14.5, f: 6, t: 1 / 50, iso: 0, nd: 0, fps: 25, foc: 7, sensor: 'ff', focusOff: 0, lock180: false, mode: 'speed' },
+    check(P) { return [evKeep(14.5), { ok: P.N <= 2.85, t: `Przysłona f/${F_L[S.f]} (cel: f/2.8 lub szersza)` },
+      { ok: P.F === 25 && Math.abs(P.angle - 180) <= 8, t: `${P.F} FPS · ${Math.round(P.angle)}° (cel: 25 FPS, 180°)` },
+      { ok: P.iso <= 205, t: `ISO ${ISO_L[S.iso]} (cel: ≤ 200)` }, exp7(P)]; },
+    hint: 'Przysłona i migawka mają zostać, a ISO już jest najniższe. Zostaje jedno narzędzie, które zabiera światło bez zmiany wyglądu obrazu: filtr ND (zakładka Ekspozycja). Ile EV trzeba zabrać? Odczytaj ze wskaźnika ekspozycji.',
+    why: 'Filtr ND zabrał nadmiar światła (ok. 6 EV), więc mogłeś zachować rozmyte tło i naturalny ruch. Każde 0,3 gęstości filtra = 1 EV.' },
+  { id: 'm_kat', t: 'Kąt migawki przy 50 FPS', scene: 'motion', lvl: 'Kąt migawki',
+    goal: 'Realizator chce nagrania w 50 kl./s z naturalnym ruchem. Ustaw 50 FPS i migawkę 180°. Ekspozycja ma być poprawna.',
+    start: { ev: 13, f: 12, t: 1 / 500, iso: 2, nd: 0, fps: 25, foc: 4, sensor: 'ff', speed: 40, focusOff: 0, lock180: false, mode: 'speed' },
+    check(P) { return [evKeep(13), { ok: P.F === 50, t: `${P.F} FPS (cel: 50)` }, { ok: Math.abs(P.angle - 180) <= 8, t: `Migawka ${fmtT(P.t)} s = ${Math.round(P.angle)}° (cel: 180°)` }, exp7(P)]; },
+    hint: 'Kąt 180° oznacza, że migawka jest otwarta przez połowę czasu klatki. Przy 50 FPS klatka trwa 1/50 s, więc czas migawki to…? Możesz też przełączyć „Kąt migawki” albo włączyć zasadę 180°. Potem wyrównaj ekspozycję filtrem ND.',
+    why: '180° przy 50 FPS to 1/100 s — połowa czasu klatki (1/50 s). Kąt opisuje ruch niezależnie od liczby klatek: zmieniasz FPS, a kąt zostaje ten sam.' },
+  { id: 'm_slow', t: 'Zwolnij dokładnie 2×', scene: 'motion', lvl: 'FPS i slow motion',
+    goal: 'Przygotuj ujęcie, które po odtworzeniu w 25 FPS będzie zwolnione dokładnie 2 razy. Zachowaj migawkę 180° i poprawną ekspozycję.',
+    start: { ev: 13, f: 12, t: 1 / 50, iso: 2, nd: 3, fps: 25, foc: 4, sensor: 'ff', speed: 60, focusOff: 0, lock180: false, mode: 'speed', play: 'real' },
+    check(P) { const sl = P.F / 25; return [evKeep(13), { ok: P.F === 50, t: `Nagranie ${P.F} FPS → w 25 FPS: ${pl(sl, sl % 1 ? 2 : 0)}× (cel: 2×)` },
+      { ok: S.play === '25', t: S.play === '25' ? 'Odtwarzanie 25 FPS włączone' : 'Włącz „25 FPS” na pasku pod podglądem' },
+      { ok: Math.abs(P.angle - 180) <= 8, t: `Migawka ${Math.round(P.angle)}° (cel: 180°)` }, exp7(P)]; },
+    hint: 'Spowolnienie = klatki nagrane ÷ klatki odtwarzane. Ile FPS trzeba nagrać, żeby 25 FPS dało 2×? Pamiętaj, że przy wyższym FPS migawka 180° jest krótsza — obraz ciemnieje.',
+    why: '50 klatek nagranych w sekundzie, odtwarzanych po 25 na sekundę, trwa dwa razy dłużej. Krótsza migawka (1/100 s) wymagała więcej światła — dlatego trzeba było zmniejszyć ND albo podnieść ISO.' },
+  { id: 'm_sens', t: 'Mała matryca, rozmyte tło', scene: 'portrait', lvl: 'Wielkość matrycy',
+    goal: 'Masz kamerę z matrycą 1″. Uzyskaj ostrą twarz i tło rozmyte krążkiem co najmniej 30 px, przy poprawnej ekspozycji. Nie zmieniaj matrycy!',
+    start: { ev: 7, f: 12, t: 1 / 50, iso: 9, nd: 0, fps: 25, foc: 1, sensor: 'one', focusOff: 0, lock180: false, mode: 'speed' },
+    check(P) { const bg = P.coc(P.sSubj + 6), sj = P.coc(P.sSubj); return [evKeep(7), { ok: S.sensor === 'one', t: S.sensor === 'one' ? 'Matryca 1″' : 'Wróć do matrycy 1″' },
+      { ok: sj <= 1.5, t: `Twarz: rozmycie ${pl(sj, 1)} px` }, { ok: bg >= 30, t: `Tło: ${Math.round(bg)} px (cel: ≥ 30 px)` }, exp7(P)]; },
+    hint: 'Mała matryca daje dużą głębię ostrości, więc musisz użyć wszystkiego, co ją zmniejsza: najszerszej przysłony i długiej ogniskowej (70 mm i więcej). Szersza przysłona wpuści dużo światła — obniż ISO, a jeśli to za mało, dodaj filtr ND.',
+    why: 'Na małej matrycy rozmyte tło wymaga bardzo jasnego obiektywu i długiej ogniskowej. Ta sama przysłona na pełnej klatce dałaby dużo mocniejsze rozmycie — dlatego kino wybiera duże matryce, a telewizja informacyjna małe.' },
+  { id: 'm_noise', t: 'Noc: mniej szumu', scene: 'night', lvl: 'ISO i szum',
+    goal: 'Zmniejsz szum w tonach średnich do maks. 3,5% przy poprawnej ekspozycji i 25 FPS. Wskazówka: sprawdź, co naprawdę zmienia szum (karta Analiza).',
+    start: { ev: 4, f: 6, t: 1 / 100, iso: 15, nd: 0, fps: 25, foc: 4, sensor: 'ff', focusOff: 0, lock180: false, mode: 'speed' },
+    check(P) { return [evKeep(4), { ok: P.F === 25, t: `${P.F} FPS (cel: 25)` }, { ok: P.noiseMid <= 0.035, t: `Szum ${pl(P.noiseMid * 100, 1)}% (cel: ≤ 3,5%)` }, exp7(P)]; },
+    hint: 'Spróbuj zmieniać samo ISO i patrz na „Szum” w karcie Analiza: prawie się nie zmienia! Szum zależy od ilości światła, które dotarło do matrycy. Otwórz przysłonę maksymalnie i wydłuż migawkę do granicy, na jaką pozwala 25 FPS (1/25 s = 360°).',
+    why: 'Przy tym samym świetle zmiana ISO tylko rozjaśnia lub przyciemnia obraz — szum pozostaje. Mniej szumu daje więcej światła na matrycy: szersza przysłona i dłuższa migawka (tu kosztem zasady 180°) albo jaśniejsze oświetlenie sceny.' },
+  { id: 'm_cel1', t: 'Odtwórz kadr: ostre lampki', scene: 'portrait', lvl: 'Wyzwanie', target: { f: 3, foc: 7, focusOff: 3, iso: 0, t: 1 / 50, nd: 0, fps: 25, ev: 8, sensor: 'ff' },
+    goal: 'Po lewej stronie suwaka widzisz kadr wzorcowy (CEL). Ustaw kamerę tak, żeby Twój obraz (po prawej) wyglądał tak samo. Przesuwaj suwak na podglądzie, żeby porównywać.',
+    start: { ev: 8, f: 12, t: 1 / 50, iso: 4, nd: 0, fps: 25, foc: 5, sensor: 'ff', focusOff: 0, lock180: false, mode: 'speed' },
+    check(P) { const T = tgtP(this), m = (P, d) => P.coc(P.sSubj + d);
+      return [evKeep(8), { ok: close(m(P, 0), m(T, 0), 3, 0.3), t: `Rozmycie twarzy: ${Math.round(m(P, 0))} px (wzorzec: ok. ${Math.round(m(T, 0))} px)` },
+        { ok: close(m(P, 3), m(T, 3), 2, 0.3), t: `Rozmycie lampek: ${Math.round(m(P, 3))} px (wzorzec: ok. ${Math.round(m(T, 3))} px)` },
+        { ok: close(m(P, 6), m(T, 6), 3, 0.3), t: `Rozmycie ściany: ${Math.round(m(P, 6))} px (wzorzec: ok. ${Math.round(m(T, 6))} px)` },
+        { ok: Math.abs(P.delta - T.delta) <= 0.5, t: `Ekspozycja ${fmtEv(P.delta)} EV (wzorzec: ${fmtEv(T.delta)} EV)` }]; },
+    hint: 'Co jest ostre na wzorcu: twarz czy lampki? Stuknij w element, który ma być ostry. Potem dopasuj siłę rozmycia przysłoną i ogniskową.',
+    why: 'Wzorzec: ostrość na girlandzie 3 m za postacią, f/2, 85 mm. Przy płytkiej głębi ostrości to, gdzie ustawisz ostrość, decyduje o tym, co widz zobaczy jako najważniejsze.' },
+  { id: 'm_cel2', t: 'Odtwórz kadr: nocna ulica', scene: 'night', lvl: 'Wyzwanie', target: { f: 15, iso: 21, t: 1 / 50, nd: 0, fps: 25, foc: 4, focusOff: 0, ev: 4, sensor: 'ff' },
+    goal: 'Dopasuj swój obraz do wzorca (lewa strona suwaka). Zwróć uwagę na ostrość tła, szum i jasność.',
+    start: { ev: 4, f: 0, t: 1 / 50, iso: 9, nd: 0, fps: 25, foc: 4, sensor: 'ff', focusOff: 0, lock180: false, mode: 'speed' },
+    check(P) { const T = tgtP(this), bg = X => X.coc(1e5);
+      return [evKeep(4), { ok: close(bg(P), bg(T), 1.5, 0.35), t: `Rozmycie świateł miasta: ${pl(bg(P), 1)} px (wzorzec: ok. ${pl(bg(T), 1)} px)` },
+        { ok: close(P.noiseMid, T.noiseMid, 0.006, 0.3), t: `Szum: ${pl(P.noiseMid * 100, 1)}% (wzorzec: ok. ${pl(T.noiseMid * 100, 1)}%)` },
+        { ok: Math.abs(P.delta - T.delta) <= 0.5, t: `Ekspozycja ${fmtEv(P.delta)} EV (wzorzec: ${fmtEv(T.delta)} EV)` }]; },
+    hint: 'Na wzorcu tło jest ostre, a obraz mocno szumi. Ostre tło = przymknięta przysłona. Przymknięta przysłona = mało światła, więc ISO musiało pójść bardzo wysoko.',
+    why: 'Wzorzec: f/8, 1/50 s, ISO 12800. Duża głębia ostrości w nocy ma swoją cenę — mało światła na matrycy i silny szum. Tak wygląda kompromis: ostrość tła albo czysty obraz.' },
+  { id: 'm_cel3', t: 'Odtwórz kadr: smugi ruchu', scene: 'motion', lvl: 'Wyzwanie', target: { f: 12, iso: 2, t: 1 / 25, nd: 4, fps: 25, foc: 4, speed: 40, focusOff: 0, ev: 13, sensor: 'ff' },
+    goal: 'Dopasuj rozmycie ruchu samochodu i jasność do wzorca (lewa strona suwaka). Prędkość auta i FPS się nie zmieniają. Zatrzymaj obraz (pauza), żeby łatwiej porównać.',
+    start: { ev: 13, f: 12, t: 1 / 500, iso: 2, nd: 0, fps: 25, foc: 4, sensor: 'ff', speed: 40, focusOff: 0, lock180: false, mode: 'speed' },
+    check(P) { const T = tgtP(this);
+      return [evKeep(13), { ok: S.speed === 40 && P.F === 25, t: S.speed === 40 && P.F === 25 ? 'Prędkość 40 km/h i 25 FPS bez zmian' : 'Przywróć 40 km/h i 25 FPS' },
+        { ok: close(P.motionPx, T.motionPx, 4, 0.2), t: `Rozmycie ruchu: ${Math.round(P.motionPx)} px (wzorzec: ok. ${Math.round(T.motionPx)} px)` },
+        { ok: Math.abs(P.delta - T.delta) <= 0.5, t: `Ekspozycja ${fmtEv(P.delta)} EV (wzorzec: ${fmtEv(T.delta)} EV)` }]; },
+    hint: 'Smugi na wzorcu są bardzo długie — migawka była otwarta przez całą klatkę. Najdłuższy możliwy czas przy 25 FPS to…? Tak długa migawka wpuści dużo światła: pomoże filtr ND.',
+    why: 'Wzorzec: 1/25 s (kąt 360°) z filtrem ND 1.2. Migawka otwarta przez całą klatkę daje maksymalne smugi — efekt czasem używany w teledyskach lub do pokazania pędu.' },
+];
+EXS.length = 0; NEW_EXS.forEach(e => EXS.push(e));
+/* =====================================================================
+   KADR mobile — układ telefoniczny: zakładki, zadania ze wzorcem, start
+   ===================================================================== */
+let curTab = 'exp';
+function showTab(t) {
+  curTab = t;
+  document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  document.querySelectorAll('.panel').forEach(p => p.hidden = p.id !== 'p-' + t);
+  $('#panels').scrollTop = 0;
+  if (t === 'info') { ver++; }
+  try { localStorage.setItem('kadr.m.tab', t); } catch (e) {}
+}
+
+/* — porównanie ze wzorcem (zadania „Odtwórz kadr”) — */
+const _updateHud = updateHud;
+updateHud = function (P) {
+  _updateHud(P);
+  if (cmp.on && cmp.hideA) { $('#hudA').textContent = 'CEL'; $('#hudB').textContent = 'TY'; }
+  $('#cmpbar').hidden = !cmp.on || !!cmp.hideA;
+};
+setExercise = function (id) {
+  if (!id && cmp.hideA) { cmp.hideA = false; endCompare(); }
+  exState.active = id;
+  document.querySelectorAll('.ex').forEach(el => el.classList.toggle('active', el.id === 'ex-' + id));
+  document.body.classList.toggle('in-ex', !!id);
+  const b = $('#exbanner'); b.classList.remove('solved');
+  if (!id) { b.hidden = true; return; }
+  const e = EXS.find(x => x.id === id);
+  b.hidden = false;
+  b.innerHTML = `<div class="g"><b>Zadanie: ${e.t}</b><div class="goal" id="exgoal" title="Stuknij, aby rozwinąć">${e.goal}</div><div class="fbk" id="exbfb"></div></div>
+    <button class="tb sm pri" id="exbCheck">${ic('i-check')}Sprawdź</button><button class="tb sm" id="exbEnd" aria-label="Zakończ zadanie">${ic('i-x')}</button>`;
+  $('#exgoal').onclick = () => $('#exgoal').classList.toggle('open');
+  $('#exbCheck').onclick = () => checkExercise(id);
+  $('#exbEnd').onclick = () => setExercise(null);
+};
+startExercise = function (id) {
+  const e = EXS.find(x => x.id === id);
+  if (cmp.on) { cmp.hideA = false; endCompare(); }
+  loadScene(e.scene, { silent: true });
+  Object.assign(S, { speed: 30, lock180: false, mode: 'speed', play: 'real', sensor: 'ff' }, e.start);
+  applyShutter('fps'); ver++; syncUI();
+  setExercise(id);
+  if (e.target) {
+    cmp.on = true; cmp.hideA = true; cmp.mode = 'split'; cmp.x = 0.5;
+    cmp.A = Object.assign(camSnap(S), e.target);
+    ver++; updateHud(derive(S));
+  }
+  $('#fb-' + id).innerHTML = '<div class="note">Zadanie trwa — zmieniaj ustawienia, potem „Sprawdź” pod podglądem.</div>';
+  if (!playing) togglePlay();
+  showTab(e.scene === 'motion' ? 'time' : 'exp');
+};
+const _checkExercise = checkExercise;
+checkExercise = function (id) {
+  _checkExercise(id);
+  updateScore();
+  const ok = $('#exbfb') && /wykonane/.test($('#exbfb').textContent);
+  if (ok) $('#exbfb').innerHTML = '<span class="ok">✓ Zadanie wykonane! Wyjaśnienie znajdziesz w zakładce Zadania.</span>';
+  $('#exbanner').classList.toggle('solved', !!ok);
+};
+function updateScore() {
+  const n = EXS.filter(e => exState.done.has(e.id)).length;
+  $('#score').innerHTML = `<b>${n}</b> / ${EXS.length}`;
+  $('#scorebar').style.width = (n / EXS.length * 100) + '%';
+}
+// zadania nie korzystają z zapisów wersji desktop
+exState.done.clear();
+try { JSON.parse(localStorage.getItem('kadr.m.done') || '[]').forEach(x => exState.done.add(x)); } catch (e) {}
+const _markDone = markDone;
+markDone = function () { _markDone(); try { localStorage.setItem('kadr.m.done', JSON.stringify([...exState.done])); } catch (e) {} };
+
+fitView = function () {
+  const st = $('#stage').getBoundingClientRect(), ar = dispC.width / dispC.height;
+  let w = st.width, h = w / ar;
+  if (h > st.height) { h = st.height; w = h * ar; }
+  const v = $('#view'); v.style.width = Math.max(50, w) + 'px'; v.style.height = Math.max(28, h) + 'px';
+};
+function mInit() {
+  $('#scenes').innerHTML = SCN_ORDER.map(id => `<button data-s="${id}">${ic(SCN[id].icon)}<span>${SCN[id].name}</span></button>`).join('');
+  $('#scenes').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; loadScene(b.dataset.s); if (b.dataset.s !== 'photo' || PHOTO.canvas) toast(SCN[b.dataset.s].about); });
+  buildSide();
+  // rozdziel sekcje na zakładki
+  $('#p-exp').append($('#sec-exp'));
+  $('#p-time').append($('#sec-time'));
+  $('#p-lens').append($('#sec-lens'), $('#sec-img'), $('#photoSec'));
+  // lista zadań
+  const ex = $('#tab-ex');
+  ex.querySelector('p.note').outerHTML = '';
+  ex.querySelectorAll('.ex').forEach((el, i) => {
+    const e = EXS[i];
+    el.querySelector('h5').insertAdjacentHTML('afterend', `<div class="lvl">${e.lvl}</div>`);
+    const chk = el.querySelector('[data-excheck]'); chk.remove();
+    el.querySelector('[data-exstart]').classList.add('pri');
+  });
+  $('#p-ex').insertBefore(ex, $('#resetRow')); ex.hidden = false;
+  $('#meter').insertAdjacentHTML('beforeend', [-4, -2, 0, 2, 4].map(v => `<span class="tk" style="left:${(v + 5) * 10}%">${v === 0 ? '0' : v > 0 ? '+' + v : '−' + -v}</span>`).join(''));
+
+  bindSlider('ev', 'ev', v => v);
+  bindSlider('iso', 'iso', v => v);
+  bindSlider('f', 'f', v => v);
+  bindSlider('speed', 'speed', v => v);
+  bindSlider('foc', 'foc', v => v);
+  bindSlider('pbg', 'photoBg', v => v);
+  bindSlider('pr', 'photoR', v => v);
+  const rs = $('#r-sh');
+  rs.addEventListener('input', () => {
+    const key = S.mode === 'speed' ? 't' : 'angle';
+    if (!dragFrom[key]) dragFrom[key] = { v: S[key], P: derive(S) };
+    if (S.mode === 'speed') setVal('t', 1 / SH[+rs.value], 'ui');
+    else { let a = +rs.value; if (Math.abs(a - 180) < 2.5) a = 180; setVal('angle', a, 'ui'); }
+  });
+  rs.addEventListener('change', () => { delete dragFrom.t; delete dragFrom.angle; syncUI(); });
+  const rf = $('#r-focus');
+  rf.addEventListener('input', () => {
+    if (!dragFrom.focusOff) dragFrom.focusOff = { v: S.focusOff, P: derive(S) };
+    const m = posToFocus(+rf.value), P = derive(S);
+    setVal('focusOff', isFinite(m) ? m - P.sSubj : Infinity, 'ui');
+  });
+  rf.addEventListener('change', () => { delete dragFrom.focusOff; syncUI(); });
+  bindSeg('nd', v => setVal('nd', +v, 'ui'));
+  bindSeg('fps', v => preserveTime(() => setVal('fps', +v, 'ui')));
+  bindSeg('mode', v => setVal('mode', v, 'ui'));
+  bindSeg('sensor', v => setVal('sensor', v, 'ui'));
+  $('#w-lock').addEventListener('change', e => setVal('lock180', e.target.checked, 'ui'));
+  $('#w-onion').addEventListener('change', e => { S.onion = e.target.checked; ver++; });
+  $('#w-nr').addEventListener('change', e => setVal('nr', e.target.checked, 'ui'));
+  $('#w-zebra').addEventListener('change', e => setVal('zebra', e.target.checked, 'ui'));
+  $('#w-pblur').addEventListener('change', e => setVal('photoBlur', e.target.checked, 'ui'));
+  $('#btnFocusSubj').onclick = () => setVal('focusOff', 0, 'ui');
+  $('#goMotion').onclick = e => { e.preventDefault(); loadScene('motion'); };
+  $('#p-ex').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.exstart) startExercise(b.dataset.exstart);
+    if (b.dataset.exhint) { const x = EXS.find(q => q.id === b.dataset.exhint); $('#fb-' + x.id).innerHTML = `<div class="tip">${x.hint}</div>`; }
+  });
+  markDone(); updateScore();
+  $('#btnResetScore').onclick = () => { exState.done.clear(); markDone(); updateScore(); EXS.forEach(e => $('#fb-' + e.id).innerHTML = ''); toast('Wyczyszczono wyniki zadań na tym telefonie.'); };
+  // pasek pod podglądem
+  $('#btnPlay').onclick = togglePlay;
+  $('#btnFwd').onclick = () => step(1);
+  $('#btnBack').onclick = () => step(-1);
+  $('#segPlay').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; preserveTime(() => setVal('play', b.dataset.v)); toast(b.dataset.v === '25' ? `Odtwarzanie 25 FPS: materiał ${S.fps} FPS ${S.fps > 25 ? `jest zwolniony ${pl(S.fps / 25, S.fps % 25 ? 2 : 0)}×` : S.fps < 25 ? 'jest lekko przyspieszony' : 'idzie w czasie rzeczywistym'}.` : 'Czas rzeczywisty: klatki w tempie nagrania.'); });
+  $('#btnAuto').onclick = doAuto;
+  $('#btnReset').onclick = doReset;
+  $('#btnCompare').onclick = () => { if (cmp.hideA) { toast('W zadaniu „Odtwórz kadr” porównanie ze wzorcem jest stałe.'); return; } cmp.on ? endCompare() : startCompare(); };
+  $('#btnCmpEnd').onclick = endCompare;
+  $('#btnSetA').onclick = () => { cmp.A = camSnap(S); ver++; updateHud(derive(S)); toast('Bieżące ustawienia zapamiętane jako A.'); };
+  $('#segCmp').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; cmp.mode = b.dataset.v; document.querySelectorAll('#segCmp button').forEach(x => x.classList.toggle('on', x === b)); ver++; updateHud(derive(S)); });
+  const split = $('#split');
+  const moveSplit = e => { const r = dispC.getBoundingClientRect(); cmp.x = clamp((e.clientX - r.left) / r.width, 0, 1); };
+  split.addEventListener('pointerdown', e => { e.preventDefault(); split.setPointerCapture(e.pointerId); moveSplit(e); split.onpointermove = moveSplit; });
+  split.addEventListener('pointerup', () => { split.onpointermove = null; });
+  $('#menuPresets').innerHTML = PRESETS.map((p, i) => `<button data-p="${i}">${p.n}<small>${p.d}</small></button>`).join('');
+  $('#btnPresets').onclick = e => { e.stopPropagation(); $('#menuPresets').hidden = !$('#menuPresets').hidden; };
+  $('#menuPresets').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; $('#menuPresets').hidden = true; applyPreset(PRESETS[+b.dataset.p]); });
+  document.addEventListener('click', e => { if (!e.target.closest('.dd')) $('#menuPresets').hidden = true; });
+  // stuknięcie w podgląd = ostrość
+  dispC.addEventListener('click', e => {
+    if (cmp.on && cmp.mode === 'split' && cmp.hideA) { const r = dispC.getBoundingClientRect(); if ((e.clientX - r.left) / r.width < cmp.x) return; }
+    const r = dispC.getBoundingClientRect();
+    let x = (e.clientX - r.left) / r.width * dispC.width, y = (e.clientY - r.top) / r.height * dispC.height;
+    if (cmp.on && cmp.mode === 'side') { if (x < W + 16) return; x -= W + 16; }
+    if (S.scene === 'photo') { if (!PHOTO.canvas) return; S.photoFx = x / W; S.photoFy = y / H; ver++; syncUI(); toast('Strefa ostrości przesunięta (przybliżenie).'); return; }
+    const L = pickLayer(x, y);
+    if (L) { setVal('focusOff', L.off, 'ui'); toast(`Ostrość: ${L.name} (${fmtDist(derive(S).focus)})`); }
+  });
+  // nawigacja
+  $('#nav').addEventListener('click', e => { const b = e.target.closest('button'); if (b) showTab(b.dataset.t); });
+  // modale
+  $('#btnHelp').onclick = () => $('#mHelp').hidden = false;
+  document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m || e.target.closest('[data-close]')) m.hidden = true; }));
+  $('#btnSave').onclick = () => { $('#saveName').value = `${SCN[S.scene].name} · f/${F_L[S.f]} · ${fmtT(S.t)} · ISO ${ISO_L[S.iso]}`; renderSaved(); $('#mSave').hidden = false; };
+  $('#btnSaveDo').onclick = () => {
+    const l = savedList(); l.unshift({ name: $('#saveName').value.trim() || 'Bez nazwy', data: snapJson() });
+    try { localStorage.setItem('kadr.saved', JSON.stringify(l.slice(0, 40))); toast('Zapisano ustawienia na tym telefonie.'); } catch (e) { toast('Ta przeglądarka nie pozwala zapisywać danych.'); }
+    renderSaved();
+  };
+  $('#savedList').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return; const l = savedList();
+    if (b.dataset.load) { applySnap(l[+b.dataset.load].data); $('#mSave').hidden = true; toast('Wczytano: ' + esc(l[+b.dataset.load].name)); }
+    if (b.dataset.del) { l.splice(+b.dataset.del, 1); try { localStorage.setItem('kadr.saved', JSON.stringify(l)); } catch (er) {} renderSaved(); }
+  });
+  const pick = () => $('#filePhoto').click();
+  $('#btnPhotoPick').onclick = pick; $('#btnPhoto2').onclick = pick;
+  $('#filePhoto').addEventListener('change', e => { loadPhotoFile(e.target.files[0]); e.target.value = ''; });
+  $('#edu').addEventListener('change', e => document.body.classList.toggle('noedu', !e.target.checked));
+  new ResizeObserver(fitView).observe($('#stage'));
+  loadScene('portrait', { silent: true });
+  for (const k in EDU_DEFAULT) showEdu(k, EDU_DEFAULT[k]);
+  let t0 = 'exp'; try { t0 = localStorage.getItem('kadr.m.tab') || 'exp'; } catch (e) {}
+  showTab(['exp', 'time', 'lens', 'ex', 'info'].includes(t0) ? t0 : 'exp');
+  fitView();
+  requestAnimationFrame(t => { lastNow = t; requestAnimationFrame(tick); });
+}
+mInit();
+
+</script>
+</body></html>
