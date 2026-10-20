@@ -30,6 +30,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 
 /* start */
 .hero{margin:28px 0 20px}
+.facts+.btn{margin-top:4px}
 .hero h1{font-size:34px;line-height:1.08;margin:0 0 10px;letter-spacing:-.5px;text-wrap:balance}
 .hero h1 em{font-style:normal;color:var(--accent)}
 .hero p{color:var(--muted);margin:0}
@@ -111,10 +112,8 @@ h3.sec{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--
       <div><b id="poolN">–</b><span>w puli</span></div>
       <div><b>~5</b><span>minut</span></div>
     </div>
-    <label class="f" for="name">Imię i nazwisko (pokażesz wynik prowadzącemu)</label>
-    <input class="inp" id="name" maxlength="60" autocomplete="name" placeholder="np. Anna Kowalska">
     <button class="btn pri" id="go">Zacznij quiz</button>
-    <div class="topics">Każde podejście losuje inne pytania z tematów: <b>plany filmowe, trójpodział i złoty podział, linie wiodące, kompozycja, linia wzroku, POV, storyboard, ostrość i zoom, tryby pracy, stabilizacja, ISO, przysłona, migawka, kąt migawki i zasada 180°, filtry ND, wielkość matrycy, rozdzielczość.</b></div>
+    <div class="topics">Każde podejście losuje inne pytania z tematów: <b>plany filmowe, trójpodział i złoty podział, linie wiodące, kompozycja, linia wzroku, POV, storyboard, zoom, stabilizacja, ISO, przysłona, migawka, kąt migawki i zasada 180°, rozdzielczość.</b></div>
     <a class="lnk" href="../" >Otwórz symulator KADR →</a>
   </section>
 
@@ -236,9 +235,6 @@ const POOL = [
   e:'Podpis pod szkicem mówi, co się dzieje i jak to nagrać.' },
 
 /* ===== OBSŁUGA KAMER (bez rodzajów kamer) ===== */
-{ d:'C', t:'Ostrość', q:'Kiedy manualne ustawianie ostrości jest szczególnie ważne?',
-  a:['Przy bliskich planach i małej głębi ostrości','Tylko przy nagrywaniu w pełnym słońcu','Gdy nagrywamy w 4K','Nigdy — automatyka zawsze jest lepsza'],
-  e:'Przy małej głębi ostrości nawet niewielkie przesunięcie powoduje nieostry obraz, dlatego operator ustawia ostrość ręcznie.' },
 { d:'C', t:'Zoom', q:'Czym różni się zoom optyczny od cyfrowego?',
   a:['Optyczny zmienia ogniskową bez utraty jakości; cyfrowy przycina kadr i rozciąga piksele','Cyfrowy daje lepszą jakość, bo pracuje procesor','Optyczny działa tylko w nocy','Nie ma żadnej różnicy w jakości'],
   e:'Zoom cyfrowy to w praktyce powiększenie wycinka obrazu — traci się rozdzielczość i ostrość.' },
@@ -248,12 +244,6 @@ const POOL = [
 { d:'C', t:'Zoom', q:'Do czego zwykle używamy zoomu out (oddalenia)?',
   a:['Żeby pokazać kontekst i szerszy plan','Żeby podkreślić detal twarzy','Żeby rozjaśnić obraz','Żeby zamrozić ruch'],
   e:'Zoom in skupia uwagę na detalu, zoom out odsłania otoczenie.' },
-{ d:'C', t:'Tryby pracy', q:'W jakiej sytuacji tryb automatyczny kamery sprawdza się najlepiej?',
-  a:['W reportażu i relacji na żywo, gdy warunki szybko się zmieniają','W filmie fabularnym z dokładnie ustawionym światłem','Przy ujęciach z bardzo małą głębią ostrości','Zawsze, gdy chcemy pełnej kontroli nad obrazem'],
-  e:'Automatyka pozwala skupić się na akcji, gdy nie ma czasu na ręczne ustawienia.' },
-{ d:'C', t:'Tryby pracy', q:'Kiedy wybierzesz tryb manualny?',
-  a:['Gdy liczy się pełna kontrola nad wyglądem obrazu, np. w studiu, fabule lub na koncercie ze zmiennym światłem','Tylko gdy kamera ma rozładowaną baterię','Wyłącznie przy nagrywaniu telefonem','Gdy nie znamy ustawień kamery'],
-  e:'W trybie manualnym operator sam decyduje o ostrości, ekspozycji, balansie bieli i migawce.' },
 { d:'C', t:'Stabilizacja', q:'Co zapewnia głowica olejowa statywu?',
   a:['Płynne panoramowanie i tiltowanie','Automatyczną ostrość','Mniejszy szum obrazu','Stabilizację w trzech osiach podczas biegu'],
   e:'Głowica olejowa stawia równomierny opór, dzięki czemu ruchy kamery są gładkie.' },
@@ -329,33 +319,6 @@ const POOL = [
 { d:'C', t:'Migotanie', q:'Lampy w Polsce (prąd 50 Hz) migoczą. Który czas migawki może dać pływające pasy na obrazie?',
   a:['1/60 s','1/50 s','1/100 s','Żaden — migotanie nie wpływa na obraz'],
   e:'Lampy migoczą 100 razy na sekundę. Czasy 1/50 i 1/100 s „pasują” do tego rytmu, 1/60 s nie.' },
-{ d:'C', t:'Filtr ND', q:'Co robi filtr ND?',
-  a:['Zatrzymuje część światła równomiernie, bez zmiany kolorów','Zwiększa głębię ostrości','Usuwa szum z obrazu','Zmienia balans bieli na ciepły'],
-  e:'ND (Neutral Density) to „okulary przeciwsłoneczne” obiektywu. Zmienia tylko ilość światła.' },
-{ d:'C', t:'Filtr ND', q:'Słoneczny dzień: chcesz rozmyte tło (f/2) i migawkę 180°, ISO jest już najniższe, a obraz jest prześwietlony. Co robisz?',
-  a:['Zakładasz filtr ND','Przymykasz przysłonę do f/16','Skracasz migawkę do 1/1000 s','Podnosisz ISO'],
-  e:'Tylko filtr ND zabierze nadmiar światła bez zmiany wyglądu obrazu (głębi ostrości i ruchu).' },
-{ d:'C', t:'Filtr ND', q:'O ile EV przyciemnia obraz filtr ND 0.9?',
-  a:['O 3 EV (przepuszcza 12,5% światła)','O 0,9 EV','O 9 EV','O 1 EV'],
-  e:'Każde 0,3 gęstości to 1 EV, czyli połowa światła. 0,9 = 3 EV.' },
-{ d:'C', t:'Filtr ND', q:'Czego filtr ND NIE zmienia?',
-  a:['Głębi ostrości i rozmycia ruchu','Ilości światła na matrycy','Jasności obrazu','Ekspozycji'],
-  e:'Filtr działa tylko na ilość światła. Przysłona i migawka — a więc wygląd obrazu — zostają takie, jakie wybrałeś.' },
-{ d:'C', t:'Matryca', q:'Obiektyw 50 mm na matrycy z mnożnikiem (crop factor) 2 daje kadr taki jak…',
-  a:['100 mm na pełnej klatce','25 mm na pełnej klatce','50 mm na pełnej klatce','200 mm na pełnej klatce'],
-  e:'Mniejsza matryca „widzi” węższy wycinek sceny: ogniskową mnożymy przez crop factor.' },
-{ d:'C', t:'Matryca', q:'Ten sam kadr, ta sama przysłona: jak mniejsza matryca wpływa na głębię ostrości?',
-  a:['Głębia ostrości jest większa — trudniej rozmyć tło','Głębia ostrości jest mniejsza','Nie ma wpływu','Obraz zawsze jest nieostry'],
-  e:'Mniejsza matryca potrzebuje krótszej ogniskowej do tego samego kadru, a to zwiększa głębię ostrości.' },
-{ d:'C', t:'Matryca', q:'Dlaczego klasyczne kamery telewizyjne mają małe matryce 2/3″?',
-  a:['Duża głębia ostrości ułatwia ostrość na żywo, a umożliwia obiektywy z dużym zoomem','Bo małe matryce w ogóle nie szumią','Bo dają płytszą głębię ostrości niż kino','Bo mają więcej pikseli'],
-  e:'W transmisjach liczy się pewna ostrość i obiektywy z zoomem ×20–×100. Kino wybiera duże matryce dla płytkiej głębi.' },
-{ d:'C', t:'Matryca', q:'Czy wielkość matrycy to to samo co rozdzielczość?',
-  a:['Nie — wielkość to fizyczny rozmiar, rozdzielczość to liczba pikseli','Tak, to dwa słowa na to samo','Tak, ale tylko w kamerach 4K','Nie — rozdzielczość to rozmiar w milimetrach'],
-  e:'Matryca może być duża i mieć mało pikseli albo małą i mieć ich dużo. To dwie różne cechy.' },
-{ d:'C', t:'Matryca', q:'Która matryca zwykle daje mniej szumu przy wysokim ISO?',
-  a:['Większa (np. pełna klatka)','Mniejsza (np. 1/2,3″)','Wielkość matrycy nie ma znaczenia','Ta z mniejszą liczbą klatek na sekundę'],
-  e:'Większa matryca zbiera więcej światła z całego kadru, więc zwykle mniej szumi.' },
 { d:'C', t:'Rozdzielczość', q:'Ile pikseli ma obraz Full HD?',
   a:['1920 × 1080','1280 × 720','3840 × 2160','7680 × 4320'],
   e:'Full HD to najpopularniejszy format w telewizji i internecie.' },
@@ -425,7 +388,6 @@ function draw() {
 }
 function show(id) { ['#s-start', '#s-q', '#s-res'].forEach(s => $(s).hidden = s !== id); window.scrollTo(0, 0); }
 function start() {
-  try { localStorage.setItem('kadrq.name', $('#name').value.trim()); } catch (e) {}
   set = draw(); idx = 0; answers = []; t0 = Date.now(); render(); show('#s-q');
 }
 let t0 = 0;
@@ -461,9 +423,9 @@ function result() {
   const arc = $('#arc'); arc.setAttribute('stroke', col); arc.setAttribute('stroke-dasharray', `${2 * Math.PI * 52 * n / N} 400`);
   const [t, m] = pct >= 90 ? ['Świetnie!', 'Opanowałeś materiał z obu zajęć.'] : pct >= 70 ? ['Bardzo dobrze', 'Przejrzyj kilka pytań poniżej i będzie komplet.'] : pct >= 50 ? ['Nieźle', 'Część tematów warto powtórzyć — wyjaśnienia są poniżej.'] : ['Do powtórki', 'Przeczytaj wyjaśnienia poniżej i spróbuj nowego zestawu.'];
   $('#rtitle').textContent = t; $('#rmsg').textContent = m;
-  const name = $('#name').value.trim(), d = new Date(), p2 = x => String(x).padStart(2, '0');
+  const d = new Date(), p2 = x => String(x).padStart(2, '0');
   const secs = Math.round((Date.now() - t0) / 1000);
-  $('#cert').innerHTML = `<dt>Uczestnik</dt><dd>${esc(name || '—')}</dd><dt>Wynik</dt><dd>${n}/${N} (${pct}%)</dd><dt>Data</dt><dd>${p2(d.getDate())}.${p2(d.getMonth() + 1)}.${d.getFullYear()}, ${p2(d.getHours())}:${p2(d.getMinutes())}</dd><dt>Czas</dt><dd>${Math.floor(secs / 60)} min ${secs % 60} s</dd>`;
+  $('#cert').innerHTML = `<dt>Wynik</dt><dd>${n}/${N} (${pct}%)</dd><dt>Data</dt><dd>${p2(d.getDate())}.${p2(d.getMonth() + 1)}.${d.getFullYear()}, ${p2(d.getHours())}:${p2(d.getMinutes())}</dd><dt>Czas</dt><dd>${Math.floor(secs / 60)} min ${secs % 60} s</dd>`;
   const part = dd => { const ix = set.map((s, i) => i).filter(i => set[i].q.d === dd); return `${ix.filter(i => answers[i].ok).length}/${ix.length}`; };
   $('#split').innerHTML = `<div><b>${part('K')}</b>Kadry i kompozycja</div><div><b>${part('C')}</b>Obsługa kamer</div>`;
   renderReview(false);
@@ -479,9 +441,7 @@ function renderReview(all) {
   $('#showAll').dataset.all = all ? '1' : '';
 }
 $('#poolN').textContent = POOL.length;
-try { $('#name').value = localStorage.getItem('kadrq.name') || ''; } catch (e) {}
 $('#go').onclick = start;
-$('#name').addEventListener('keydown', e => { if (e.key === 'Enter') start(); });
 $('#opts').addEventListener('click', e => { const b = e.target.closest('.opt'); if (b && !b.disabled) choose(+b.dataset.i); });
 $('#next').onclick = next;
 $('#again').onclick = start;

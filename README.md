@@ -13,7 +13,7 @@ Co pokazuje w czasie rzeczywistym:
 
 Zakładka **Zadania** zawiera 8 zadań na zajęcia sprawdzanych automatycznie, w tym trzy wyzwania „Odtwórz kadr”.
 
-Quiz losuje 15 pytań z puli 69 (kadry i kompozycja, obsługa kamer) i od razu pokazuje wynik z wyjaśnieniami.
+Quiz losuje 15 pytań z puli 57 (kadry i kompozycja, obsługa kamer) i od razu pokazuje wynik z wyjaśnieniami.
 
 Działa w przeglądarce, bez instalacji i bez logowania. Cały program to jeden plik `index.html`.
 

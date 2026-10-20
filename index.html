@@ -1995,60 +1995,67 @@ function step(dir) {
    ===================================================================== */
 const close = (a, b, abs, rel) => Math.abs(a - b) <= Math.max(abs, rel * Math.max(Math.abs(a), Math.abs(b)));
 const evKeep = (ev) => ({ ok: Math.abs(S.ev - ev) < 0.01, t: Math.abs(S.ev - ev) < 0.01 ? 'Światło sceny bez zmian' : `Przywróć oświetlenie sceny EV ${pl(ev, 1)} — to warunki, a nie ustawienie kamery` });
+const expE = P => ({ ok: Math.abs(P.delta) <= 1, t: `Ekspozycja ${fmtEv(P.delta)} EV (cel: od −1 do +1 EV)` });
+const ang180 = P => ({ ok: Math.abs(P.angle - 180) <= 20, t: `Migawka ${fmtT(P.t)} s = ${Math.round(P.angle)}° (cel: ok. 180°)` });
 const tgtP = e => derive(Object.assign({}, S, e.target, { scene: e.scene, play: S.play }));
 const NEW_EXS = [
   { id: 'm_nd', t: 'Wywiad w słońcu', scene: 'portrait', lvl: 'Filtr ND',
-    goal: 'Jest bardzo jasno (EV 14,5). Zostaw przysłonę f/2.8 lub szerszą, 25 FPS i migawkę 180° (1/50 s). ISO maks. 200. Uzyskaj poprawną ekspozycję.',
+    goal: 'Jest bardzo jasno i obraz jest biały. Nie ruszaj przysłony (rozmyte tło ma zostać) ani migawki — popraw jasność tak, żeby wskaźnik ekspozycji był blisko zera.',
     start: { ev: 14.5, f: 6, t: 1 / 50, iso: 0, nd: 0, fps: 25, foc: 7, sensor: 'ff', focusOff: 0, lock180: false, mode: 'speed' },
-    check(P) { return [evKeep(14.5), { ok: P.N <= 2.85, t: `Przysłona f/${F_L[S.f]} (cel: f/2.8 lub szersza)` },
-      { ok: P.F === 25 && Math.abs(P.angle - 180) <= 8, t: `${P.F} FPS · ${Math.round(P.angle)}° (cel: 25 FPS, 180°)` },
-      { ok: P.iso <= 205, t: `ISO ${ISO_L[S.iso]} (cel: ≤ 200)` }, exp7(P)]; },
+    check(P) { return [evKeep(14.5), { ok: P.N <= 4.05, t: `Przysłona f/${F_L[S.f]} (cel: f/4 lub szersza)` }, ang180(P), expE(P)]; },
+    sol: 'Zakładka Ekspozycja → Filtr ND → wybierz 1.8. Przysłona f/2.8 i migawka 1/50 s zostają bez zmian.',
     hint: 'Przysłona i migawka mają zostać, a ISO już jest najniższe. Zostaje jedno narzędzie, które zabiera światło bez zmiany wyglądu obrazu: filtr ND (zakładka Ekspozycja). Ile EV trzeba zabrać? Odczytaj ze wskaźnika ekspozycji.',
     why: 'Filtr ND zabrał nadmiar światła (ok. 6 EV), więc mogłeś zachować rozmyte tło i naturalny ruch. Każde 0,3 gęstości filtra = 1 EV.' },
   { id: 'm_kat', t: 'Kąt migawki przy 50 FPS', scene: 'motion', lvl: 'Kąt migawki',
     goal: 'Realizator chce nagrania w 50 kl./s z naturalnym ruchem. Ustaw 50 FPS i migawkę 180°. Ekspozycja ma być poprawna.',
     start: { ev: 13, f: 12, t: 1 / 500, iso: 2, nd: 0, fps: 25, foc: 4, sensor: 'ff', speed: 40, focusOff: 0, lock180: false, mode: 'speed' },
-    check(P) { return [evKeep(13), { ok: P.F === 50, t: `${P.F} FPS (cel: 50)` }, { ok: Math.abs(P.angle - 180) <= 8, t: `Migawka ${fmtT(P.t)} s = ${Math.round(P.angle)}° (cel: 180°)` }, exp7(P)]; },
-    hint: 'Kąt 180° oznacza, że migawka jest otwarta przez połowę czasu klatki. Przy 50 FPS klatka trwa 1/50 s, więc czas migawki to…? Możesz też przełączyć „Kąt migawki” albo włączyć zasadę 180°. Potem wyrównaj ekspozycję filtrem ND.',
+    check(P) { return [evKeep(13), { ok: P.F === 50, t: `${P.F} FPS (cel: 50)` }, ang180(P), expE(P)]; },
+    sol: 'Zakładka Ruch: FPS → 50, włącz „Zasada 180°” (migawka sama ustawi się na 1/100 s). Potem w zakładce Ekspozycja ustaw filtr ND 0.6 albo kliknij „Auto ekspozycja”.',
+    hint: 'Kąt 180° oznacza, że migawka jest otwarta przez połowę czasu klatki. Przy 50 FPS klatka trwa 1/50 s, więc czas migawki to…? Możesz też przełączyć „Kąt migawki” albo włączyć zasadę 180°. Najprościej: włącz przełącznik „Zasada 180°”. Potem wyrównaj ekspozycję filtrem ND albo przyciskiem „Auto ekspozycja”.',
     why: '180° przy 50 FPS to 1/100 s — połowa czasu klatki (1/50 s). Kąt opisuje ruch niezależnie od liczby klatek: zmieniasz FPS, a kąt zostaje ten sam.' },
   { id: 'm_slow', t: 'Zwolnij dokładnie 2×', scene: 'motion', lvl: 'FPS i slow motion',
-    goal: 'Przygotuj ujęcie, które po odtworzeniu w 25 FPS będzie zwolnione dokładnie 2 razy. Zachowaj migawkę 180° i poprawną ekspozycję.',
+    goal: 'Przygotuj ujęcie, które po odtworzeniu w 25 FPS będzie zwolnione dokładnie 2 razy. Ekspozycja ma zostać poprawna.',
     start: { ev: 13, f: 12, t: 1 / 50, iso: 2, nd: 3, fps: 25, foc: 4, sensor: 'ff', speed: 60, focusOff: 0, lock180: false, mode: 'speed', play: 'real' },
     check(P) { const sl = P.F / 25; return [evKeep(13), { ok: P.F === 50, t: `Nagranie ${P.F} FPS → w 25 FPS: ${pl(sl, sl % 1 ? 2 : 0)}× (cel: 2×)` },
       { ok: S.play === '25', t: S.play === '25' ? 'Odtwarzanie 25 FPS włączone' : 'Włącz „25 FPS” na pasku pod podglądem' },
-      { ok: Math.abs(P.angle - 180) <= 8, t: `Migawka ${Math.round(P.angle)}° (cel: 180°)` }, exp7(P)]; },
-    hint: 'Spowolnienie = klatki nagrane ÷ klatki odtwarzane. Ile FPS trzeba nagrać, żeby 25 FPS dało 2×? Pamiętaj, że przy wyższym FPS migawka 180° jest krótsza — obraz ciemnieje.',
+      expE(P), { ok: true, t: Math.abs(P.angle - 180) <= 20 ? 'Migawka 180° — płynne zwolnione tempo (bonus)' : `Migawka ${Math.round(P.angle)}° (180° jest zalecane, ale nie wymagane)` }]; },
+    sol: 'Zakładka Ruch: FPS → 50. Potem na pasku pod podglądem wybierz „25 FPS”. 50 ÷ 25 = 2× wolniej.',
+    hint: 'Spowolnienie = klatki nagrane ÷ klatki odtwarzane. Ile FPS trzeba nagrać, żeby 25 FPS dało 2×? Na koniec włącz „25 FPS” na pasku pod podglądem.',
     why: '50 klatek nagranych w sekundzie, odtwarzanych po 25 na sekundę, trwa dwa razy dłużej. Krótsza migawka (1/100 s) wymagała więcej światła — dlatego trzeba było zmniejszyć ND albo podnieść ISO.' },
   { id: 'm_sens', t: 'Mała matryca, rozmyte tło', scene: 'portrait', lvl: 'Wielkość matrycy',
-    goal: 'Masz kamerę z matrycą 1″. Uzyskaj ostrą twarz i tło rozmyte krążkiem co najmniej 30 px, przy poprawnej ekspozycji. Nie zmieniaj matrycy!',
+    goal: 'Masz kamerę z matrycą 1″. Uzyskaj ostrą twarz i tło rozmyte krążkiem co najmniej 20 px, przy poprawnej ekspozycji. Nie zmieniaj matrycy!',
     start: { ev: 7, f: 12, t: 1 / 50, iso: 9, nd: 0, fps: 25, foc: 1, sensor: 'one', focusOff: 0, lock180: false, mode: 'speed' },
     check(P) { const bg = P.coc(P.sSubj + 6), sj = P.coc(P.sSubj); return [evKeep(7), { ok: S.sensor === 'one', t: S.sensor === 'one' ? 'Matryca 1″' : 'Wróć do matrycy 1″' },
-      { ok: sj <= 1.5, t: `Twarz: rozmycie ${pl(sj, 1)} px` }, { ok: bg >= 30, t: `Tło: ${Math.round(bg)} px (cel: ≥ 30 px)` }, exp7(P)]; },
-    hint: 'Mała matryca daje dużą głębię ostrości, więc musisz użyć wszystkiego, co ją zmniejsza: najszerszej przysłony i długiej ogniskowej (70 mm i więcej). Szersza przysłona wpuści dużo światła — obniż ISO, a jeśli to za mało, dodaj filtr ND.',
+      { ok: sj <= 3, t: `Twarz: rozmycie ${pl(sj, 1)} px` }, { ok: bg >= 20, t: `Tło: ${Math.round(bg)} px (cel: ≥ 20 px)` }, expE(P)]; },
+    sol: 'Przysłona → f/1.4 (zakładka Ekspozycja), ogniskowa → 85 mm (zakładka Obiektyw). Potem kliknij „Auto ekspozycja”.',
+    hint: 'Mała matryca daje dużą głębię ostrości, więc musisz użyć wszystkiego, co ją zmniejsza: najszerszej przysłony i dłuższej ogniskowej (50 mm i więcej). Szersza przysłona wpuści dużo światła — na koniec kliknij „Auto ekspozycja”.',
     why: 'Na małej matrycy rozmyte tło wymaga bardzo jasnego obiektywu i długiej ogniskowej. Ta sama przysłona na pełnej klatce dałaby dużo mocniejsze rozmycie — dlatego kino wybiera duże matryce, a telewizja informacyjna małe.' },
   { id: 'm_noise', t: 'Noc: mniej szumu', scene: 'night', lvl: 'ISO i szum',
-    goal: 'Zmniejsz szum w tonach średnich do maks. 3,5% przy poprawnej ekspozycji i 25 FPS. Wskazówka: sprawdź, co naprawdę zmienia szum (karta Analiza).',
+    goal: 'Zmniejsz szum w tonach średnich do maks. 5% przy poprawnej ekspozycji i 25 FPS. Wskazówka: sprawdź, co naprawdę zmienia szum (karta Analiza).',
     start: { ev: 4, f: 6, t: 1 / 100, iso: 15, nd: 0, fps: 25, foc: 4, sensor: 'ff', focusOff: 0, lock180: false, mode: 'speed' },
-    check(P) { return [evKeep(4), { ok: P.F === 25, t: `${P.F} FPS (cel: 25)` }, { ok: P.noiseMid <= 0.035, t: `Szum ${pl(P.noiseMid * 100, 1)}% (cel: ≤ 3,5%)` }, exp7(P)]; },
-    hint: 'Spróbuj zmieniać samo ISO i patrz na „Szum” w karcie Analiza: prawie się nie zmienia! Szum zależy od ilości światła, które dotarło do matrycy. Otwórz przysłonę maksymalnie i wydłuż migawkę do granicy, na jaką pozwala 25 FPS (1/25 s = 360°).',
-    why: 'Przy tym samym świetle zmiana ISO tylko rozjaśnia lub przyciemnia obraz — szum pozostaje. Mniej szumu daje więcej światła na matrycy: szersza przysłona i dłuższa migawka (tu kosztem zasady 180°) albo jaśniejsze oświetlenie sceny.' },
+    check(P) { return [evKeep(4), { ok: P.F === 25, t: `${P.F} FPS (cel: 25)` }, { ok: P.noiseMid <= 0.05, t: `Szum ${pl(P.noiseMid * 100, 1)}% (cel: ≤ 5%)` }, expE(P)]; },
+    sol: 'Przysłona → f/1.4, migawka → 1/50 s. Potem obniż ISO tak, żeby ekspozycja wróciła do zera (albo „Auto ekspozycja”).',
+    hint: 'Spróbuj zmieniać samo ISO i patrz na „Szum” w karcie Analiza: prawie się nie zmienia! Szum zależy od ilości światła, które dotarło do matrycy. Otwórz przysłonę maksymalnie i wydłuż migawkę do 1/50 s.',
+    why: 'Przy tym samym świetle zmiana ISO tylko rozjaśnia lub przyciemnia obraz — szum pozostaje. Mniej szumu daje więcej światła na matrycy: szersza przysłona i dłuższa migawka albo jaśniejsze oświetlenie sceny.' },
   { id: 'm_cel1', t: 'Odtwórz kadr: ostre lampki', scene: 'portrait', lvl: 'Wyzwanie', target: { f: 3, foc: 7, focusOff: 3, iso: 0, t: 1 / 50, nd: 0, fps: 25, ev: 8, sensor: 'ff' },
     goal: 'Po lewej stronie suwaka widzisz kadr wzorcowy (CEL). Ustaw kamerę tak, żeby Twój obraz (po prawej) wyglądał tak samo. Przesuwaj suwak na podglądzie, żeby porównywać.',
     start: { ev: 8, f: 12, t: 1 / 50, iso: 4, nd: 0, fps: 25, foc: 5, sensor: 'ff', focusOff: 0, lock180: false, mode: 'speed' },
     check(P) { const T = tgtP(this), m = (P, d) => P.coc(P.sSubj + d);
-      return [evKeep(8), { ok: close(m(P, 0), m(T, 0), 3, 0.3), t: `Rozmycie twarzy: ${Math.round(m(P, 0))} px (wzorzec: ok. ${Math.round(m(T, 0))} px)` },
-        { ok: close(m(P, 3), m(T, 3), 2, 0.3), t: `Rozmycie lampek: ${Math.round(m(P, 3))} px (wzorzec: ok. ${Math.round(m(T, 3))} px)` },
-        { ok: close(m(P, 6), m(T, 6), 3, 0.3), t: `Rozmycie ściany: ${Math.round(m(P, 6))} px (wzorzec: ok. ${Math.round(m(T, 6))} px)` },
-        { ok: Math.abs(P.delta - T.delta) <= 0.5, t: `Ekspozycja ${fmtEv(P.delta)} EV (wzorzec: ${fmtEv(T.delta)} EV)` }]; },
+      return [evKeep(8), { ok: close(m(P, 0), m(T, 0), 5, 0.45), t: `Rozmycie twarzy: ${Math.round(m(P, 0))} px (wzorzec: ok. ${Math.round(m(T, 0))} px)` },
+        { ok: close(m(P, 3), m(T, 3), 4, 0.45), t: `Rozmycie lampek: ${Math.round(m(P, 3))} px (wzorzec: ok. ${Math.round(m(T, 3))} px)` },
+        { ok: close(m(P, 6), m(T, 6), 5, 0.45), t: `Rozmycie ściany: ${Math.round(m(P, 6))} px (wzorzec: ok. ${Math.round(m(T, 6))} px)` },
+        { ok: Math.abs(P.delta - T.delta) <= 1, t: `Ekspozycja ${fmtEv(P.delta)} EV (wzorzec: ${fmtEv(T.delta)} EV)` }]; },
+    sol: 'Stuknij w lampki na podglądzie (ostrość na girlandę). Przysłona → f/2, ogniskowa → 85 mm, ISO → 100.',
     hint: 'Co jest ostre na wzorcu: twarz czy lampki? Stuknij w element, który ma być ostry. Potem dopasuj siłę rozmycia przysłoną i ogniskową.',
     why: 'Wzorzec: ostrość na girlandzie 3 m za postacią, f/2, 85 mm. Przy płytkiej głębi ostrości to, gdzie ustawisz ostrość, decyduje o tym, co widz zobaczy jako najważniejsze.' },
   { id: 'm_cel2', t: 'Odtwórz kadr: nocna ulica', scene: 'night', lvl: 'Wyzwanie', target: { f: 15, iso: 21, t: 1 / 50, nd: 0, fps: 25, foc: 4, focusOff: 0, ev: 4, sensor: 'ff' },
     goal: 'Dopasuj swój obraz do wzorca (lewa strona suwaka). Zwróć uwagę na ostrość tła, szum i jasność.',
     start: { ev: 4, f: 0, t: 1 / 50, iso: 9, nd: 0, fps: 25, foc: 4, sensor: 'ff', focusOff: 0, lock180: false, mode: 'speed' },
     check(P) { const T = tgtP(this), bg = X => X.coc(1e5);
-      return [evKeep(4), { ok: close(bg(P), bg(T), 1.5, 0.35), t: `Rozmycie świateł miasta: ${pl(bg(P), 1)} px (wzorzec: ok. ${pl(bg(T), 1)} px)` },
-        { ok: close(P.noiseMid, T.noiseMid, 0.006, 0.3), t: `Szum: ${pl(P.noiseMid * 100, 1)}% (wzorzec: ok. ${pl(T.noiseMid * 100, 1)}%)` },
-        { ok: Math.abs(P.delta - T.delta) <= 0.5, t: `Ekspozycja ${fmtEv(P.delta)} EV (wzorzec: ${fmtEv(T.delta)} EV)` }]; },
+      return [evKeep(4), { ok: close(bg(P), bg(T), 2.5, 0.5), t: `Rozmycie świateł miasta: ${pl(bg(P), 1)} px (wzorzec: ok. ${pl(bg(T), 1)} px)` },
+        { ok: close(P.noiseMid, T.noiseMid, 0.01, 0.45), t: `Szum: ${pl(P.noiseMid * 100, 1)}% (wzorzec: ok. ${pl(T.noiseMid * 100, 1)}%)` },
+        { ok: Math.abs(P.delta - T.delta) <= 1, t: `Ekspozycja ${fmtEv(P.delta)} EV (wzorzec: ${fmtEv(T.delta)} EV)` }]; },
+    sol: 'Przysłona → f/8, ISO → 12800. Migawka zostaje 1/50 s.',
     hint: 'Na wzorcu tło jest ostre, a obraz mocno szumi. Ostre tło = przymknięta przysłona. Przymknięta przysłona = mało światła, więc ISO musiało pójść bardzo wysoko.',
     why: 'Wzorzec: f/8, 1/50 s, ISO 12800. Duża głębia ostrości w nocy ma swoją cenę — mało światła na matrycy i silny szum. Tak wygląda kompromis: ostrość tła albo czysty obraz.' },
   { id: 'm_cel3', t: 'Odtwórz kadr: smugi ruchu', scene: 'motion', lvl: 'Wyzwanie', target: { f: 12, iso: 2, t: 1 / 25, nd: 4, fps: 25, foc: 4, speed: 40, focusOff: 0, ev: 13, sensor: 'ff' },
@@ -2056,8 +2063,9 @@ const NEW_EXS = [
     start: { ev: 13, f: 12, t: 1 / 500, iso: 2, nd: 0, fps: 25, foc: 4, sensor: 'ff', speed: 40, focusOff: 0, lock180: false, mode: 'speed' },
     check(P) { const T = tgtP(this);
       return [evKeep(13), { ok: S.speed === 40 && P.F === 25, t: S.speed === 40 && P.F === 25 ? 'Prędkość 40 km/h i 25 FPS bez zmian' : 'Przywróć 40 km/h i 25 FPS' },
-        { ok: close(P.motionPx, T.motionPx, 4, 0.2), t: `Rozmycie ruchu: ${Math.round(P.motionPx)} px (wzorzec: ok. ${Math.round(T.motionPx)} px)` },
-        { ok: Math.abs(P.delta - T.delta) <= 0.5, t: `Ekspozycja ${fmtEv(P.delta)} EV (wzorzec: ${fmtEv(T.delta)} EV)` }]; },
+        { ok: close(P.motionPx, T.motionPx, 6, 0.35), t: `Rozmycie ruchu: ${Math.round(P.motionPx)} px (wzorzec: ok. ${Math.round(T.motionPx)} px)` },
+        { ok: Math.abs(P.delta - T.delta) <= 1, t: `Ekspozycja ${fmtEv(P.delta)} EV (wzorzec: ${fmtEv(T.delta)} EV)` }]; },
+    sol: 'Zakładka Ruch: migawka → 1/25 s. Zakładka Ekspozycja: filtr ND → 1.2 (albo „Auto ekspozycja”).',
     hint: 'Smugi na wzorcu są bardzo długie — migawka była otwarta przez całą klatkę. Najdłuższy możliwy czas przy 25 FPS to…? Tak długa migawka wpuści dużo światła: pomoże filtr ND.',
     why: 'Wzorzec: 1/25 s (kąt 360°) z filtrem ND 1.2. Migawka otwarta przez całą klatkę daje maksymalne smugi — efekt czasem używany w teledyskach lub do pokazania pędu.' },
 ];
@@ -2092,9 +2100,12 @@ setExercise = function (id) {
   const e = EXS.find(x => x.id === id);
   b.hidden = false;
   b.innerHTML = `<div class="g"><b>Zadanie: ${e.t}</b><div class="goal" id="exgoal" title="Stuknij, aby rozwinąć">${e.goal}</div><div class="fbk" id="exbfb"></div></div>
-    <button class="tb sm pri" id="exbCheck">${ic('i-check')}Sprawdź</button><button class="tb sm" id="exbEnd" aria-label="Zakończ zadanie">${ic('i-x')}</button>`;
+    <button class="tb sm pri" id="exbCheck">${ic('i-check')}Sprawdź</button><button class="tb sm" id="exbHint" aria-label="Podpowiedź">${ic('i-bulb')}</button><button class="tb sm" id="exbEnd" aria-label="Zakończ zadanie">${ic('i-x')}</button>`;
   $('#exgoal').onclick = () => $('#exgoal').classList.toggle('open');
   $('#exbCheck').onclick = () => checkExercise(id);
+  let hs = 0;
+  $('#exbHint').onclick = () => { hs = (hs + 1) % 3; $('#exbanner').classList.remove('solved');
+    $('#exbfb').innerHTML = hs === 1 ? `<span>💡 ${e.hint}</span><span class="note" style="margin:4px 0 0">Stuknij 💡 jeszcze raz, aby zobaczyć rozwiązanie.</span>` : hs === 2 ? `<span><b>Rozwiązanie:</b> ${e.sol}</span>` : ''; };
   $('#exbEnd').onclick = () => setExercise(null);
 };
 startExercise = function (id) {
@@ -2154,6 +2165,7 @@ function mInit() {
     el.querySelector('h5').insertAdjacentHTML('afterend', `<div class="lvl">${e.lvl}</div>`);
     const chk = el.querySelector('[data-excheck]'); chk.remove();
     el.querySelector('[data-exstart]').classList.add('pri');
+    el.querySelector('[data-exhint]').insertAdjacentHTML('afterend', `<button class="tb sm" data-exsol="${e.id}">Rozwiązanie</button>`);
   });
   $('#p-ex').insertBefore(ex, $('#resetRow')); ex.hidden = false;
   $('#meter').insertAdjacentHTML('beforeend', [-4, -2, 0, 2, 4].map(v => `<span class="tk" style="left:${(v + 5) * 10}%">${v === 0 ? '0' : v > 0 ? '+' + v : '−' + -v}</span>`).join(''));
@@ -2195,6 +2207,7 @@ function mInit() {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.exstart) startExercise(b.dataset.exstart);
     if (b.dataset.exhint) { const x = EXS.find(q => q.id === b.dataset.exhint); $('#fb-' + x.id).innerHTML = `<div class="tip">${x.hint}</div>`; }
+    if (b.dataset.exsol) { const x = EXS.find(q => q.id === b.dataset.exsol); $('#fb-' + x.id).innerHTML = `<div class="tip"><b>Rozwiązanie:</b> ${x.sol}</div>`; }
   });
   markDone(); updateScore();
   $('#btnResetScore').onclick = () => { exState.done.clear(); markDone(); updateScore(); EXS.forEach(e => $('#fb-' + e.id).innerHTML = ''); toast('Wyczyszczono wyniki zadań na tym telefonie.'); };
