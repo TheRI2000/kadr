@@ -2,7 +2,8 @@
 
 Edukacyjny symulator kamery dla studentów dziennikarstwa i realizacji telewizyjnej, w wersji na telefon.
 
-**Otwórz:** https://theri2000.github.io/kadr/
+**Symulator:** https://theri2000.github.io/kadr/  
+**Quiz podsumowujący:** https://theri2000.github.io/kadr/quiz/
 
 Co pokazuje w czasie rzeczywistym:
 - ISO, przysłonę, czas i kąt migawki, FPS, filtr ND, ogniskową i wielkość matrycy,
@@ -11,6 +12,8 @@ Co pokazuje w czasie rzeczywistym:
 - porównanie ustawień A/B.
 
 Zakładka **Zadania** zawiera 8 zadań na zajęcia sprawdzanych automatycznie, w tym trzy wyzwania „Odtwórz kadr”.
+
+Quiz losuje 15 pytań z puli 69 (kadry i kompozycja, obsługa kamer) i od razu pokazuje wynik z wyjaśnieniami.
 
 Działa w przeglądarce, bez instalacji i bez logowania. Cały program to jeden plik `index.html`.
 

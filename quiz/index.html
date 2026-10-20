@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d10">
+<title>KADR · Quiz</title>
+<style>
+/* Układ: jedna kolumna na telefon, ekran startu → pytanie → wynik. Ciemny motyw jak w symulatorze KADR. */
+:root{
+  --bg:#0b0d10; --panel:#12151b; --panel2:#181c23; --line:#262c36; --line2:#343c48;
+  --text:#e9ecf2; --muted:#8e97a8; --dim:#5f6878;
+  --accent:#f5a524; --ink:#1a1204; --cyan:#4cc3ff; --good:#3ddc97; --bad:#ff6b6b;
+  --sans:-apple-system,"Segoe UI",system-ui,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;min-height:100dvh;background:var(--bg);color:var(--text);font:16px/1.5 var(--sans);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:560px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top,0px)) 16px calc(24px + env(safe-area-inset-bottom,0px))}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;letter-spacing:.16em;font-size:13px;color:var(--muted)}
+.brand svg{width:22px;height:22px;color:var(--accent)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;border-radius:14px;border:1px solid var(--line2);background:var(--panel2);font-weight:600;font-size:16px}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--ink)}
+.btn:disabled{opacity:.4}
+
+/* start */
+.hero{margin:28px 0 20px}
+.hero h1{font-size:34px;line-height:1.08;margin:0 0 10px;letter-spacing:-.5px;text-wrap:balance}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero p{color:var(--muted);margin:0}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:20px 0}
+.facts div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.facts b{display:block;font:600 22px var(--mono);color:var(--text)}
+.facts span{font-size:12px;color:var(--muted)}
+label.f{display:block;font-size:13px;color:var(--muted);margin:4px 0 6px}
+.inp{width:100%;background:#0d1014;border:1px solid var(--line2);border-radius:12px;color:var(--text);padding:13px 14px;font:inherit;margin-bottom:16px}
+.topics{font-size:13px;color:var(--muted);margin:18px 0 0;line-height:1.6}
+.topics b{color:var(--text);font-weight:600}
+.lnk{display:block;text-align:center;margin-top:16px;color:var(--cyan);font-size:14px;text-decoration:none}
+
+/* pytanie */
+.qhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
+.count{font:600 14px var(--mono);color:var(--muted)}
+.count b{color:var(--text)}
+.pts{font:600 14px var(--mono);color:var(--good)}
+.bar{height:6px;border-radius:3px;background:#22272f;margin:10px 0 18px;overflow:hidden;display:flex;gap:2px}
+.bar i{flex:1;background:#2a313c}
+.bar i.ok{background:var(--good)} .bar i.no{background:var(--bad)} .bar i.cur{background:var(--accent)}
+.chip{display:inline-block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--cyan);border:1px solid rgba(76,195,255,.35);border-radius:20px;padding:2px 10px;margin-bottom:10px}
+.q{font-size:21px;line-height:1.35;font-weight:600;margin:0 0 16px;text-wrap:balance}
+.fig{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;margin:0 0 16px}
+.fig svg{display:block;width:100%;height:auto;border-radius:6px}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{display:flex;align-items:flex-start;gap:12px;text-align:left;width:100%;padding:13px 14px;border-radius:14px;border:1.5px solid var(--line2);background:var(--panel);font-size:15.5px;line-height:1.4;transition:border-color .15s,background .15s}
+.opt .k{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:600 13px var(--mono);background:#232832;color:var(--muted)}
+.opt:not(:disabled):active{background:var(--panel2)}
+.opt.ok{border-color:var(--good);background:rgba(61,220,151,.1)}
+.opt.ok .k{background:var(--good);color:#06281a}
+.opt.no{border-color:var(--bad);background:rgba(255,107,107,.1)}
+.opt.no .k{background:var(--bad);color:#2b0606}
+.opt:disabled{cursor:default}
+.opt.dim{opacity:.55}
+.fb{margin:16px 0;padding:12px 14px;border-radius:12px;background:var(--panel);border-left:3px solid var(--good);font-size:14.5px;line-height:1.5}
+.fb.no{border-left-color:var(--bad)}
+.fb b{display:block;margin-bottom:2px}
+.fb.ok b{color:var(--good)} .fb.no b{color:var(--bad)}
+@media (prefers-reduced-motion:no-preference){ .fb{animation:in .25s ease-out} @keyframes in{from{opacity:0;transform:translateY(6px)}} }
+
+/* wynik */
+.res{text-align:center;margin:26px 0 8px}
+.ring{width:170px;height:170px;margin:0 auto 12px;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .v{position:absolute;inset:0;display:grid;place-items:center;align-content:center}
+.ring .v b{font:700 44px var(--mono);line-height:1}
+.ring .v span{color:var(--muted);font-size:14px}
+.res h2{font-size:22px;margin:4px 0 4px}
+.res p{color:var(--muted);margin:0}
+.cert{margin:18px 0;padding:14px;border:1px dashed var(--line2);border-radius:14px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
+.cert dt{color:var(--muted)} .cert dd{margin:0;text-align:right;font-family:var(--mono)}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 18px}
+.split div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted)}
+.split b{display:block;font:600 18px var(--mono);color:var(--text)}
+h3.sec{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:22px 0 10px}
+.rev{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--bad);border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:14px}
+.rev.ok{border-left-color:var(--good)}
+.rev .rq{font-weight:600;margin-bottom:6px}
+.rev .ry{color:var(--bad)} .rev .rc{color:var(--good)}
+.rev .re{color:var(--muted);margin-top:6px}
+.actions{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+.tog{background:none;border:0;color:var(--cyan);font-size:14px;padding:6px 0}
+.foot{margin-top:22px;text-align:center;font-size:12px;color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m14.31 8 5.74 9.94M9.69 8h11.48M7.38 12l5.74-9.94M9.69 16 3.95 6.06M14.31 16H2.83M16.62 12l-5.74 9.94"/></svg>KADR · QUIZ</div>
+
+  <!-- START -->
+  <section id="s-start">
+    <div class="hero">
+      <h1>Sprawdź się: <em>kadr</em> i <em>kamera</em></h1>
+      <p>Podsumowanie zajęć „Kadry filmowe i kompozycja” oraz „Obsługa kamer telewizyjnych”.</p>
+    </div>
+    <div class="facts">
+      <div><b>15</b><span>pytań</span></div>
+      <div><b id="poolN">–</b><span>w puli</span></div>
+      <div><b>~5</b><span>minut</span></div>
+    </div>
+    <label class="f" for="name">Imię i nazwisko (pokażesz wynik prowadzącemu)</label>
+    <input class="inp" id="name" maxlength="60" autocomplete="name" placeholder="np. Anna Kowalska">
+    <button class="btn pri" id="go">Zacznij quiz</button>
+    <div class="topics">Każde podejście losuje inne pytania z tematów: <b>plany filmowe, trójpodział i złoty podział, linie wiodące, kompozycja, linia wzroku, POV, storyboard, ostrość i zoom, tryby pracy, stabilizacja, ISO, przysłona, migawka, kąt migawki i zasada 180°, filtry ND, wielkość matrycy, rozdzielczość.</b></div>
+    <a class="lnk" href="../" >Otwórz symulator KADR →</a>
+  </section>
+
+  <!-- PYTANIE -->
+  <section id="s-q" hidden>
+    <div class="qhead"><div class="count" id="qcount"></div><div class="pts" id="qpts"></div></div>
+    <div class="bar" id="bar"></div>
+    <div class="chip" id="qtopic"></div>
+    <h2 class="q" id="qtext"></h2>
+    <div class="fig" id="qfig" hidden></div>
+    <div class="opts" id="opts"></div>
+    <div class="fb" id="fb" hidden></div>
+    <button class="btn pri" id="next" hidden>Dalej</button>
+  </section>
+
+  <!-- WYNIK -->
+  <section id="s-res" hidden>
+    <div class="res">
+      <div class="ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="#22272f" stroke-width="12"/><circle id="arc" cx="60" cy="60" r="52" fill="none" stroke="#3ddc97" stroke-width="12" stroke-linecap="round" stroke-dasharray="0 400"/></svg>
+        <div class="v"><b id="rs"></b><span id="rp"></span></div></div>
+      <h2 id="rtitle"></h2>
+      <p id="rmsg"></p>
+    </div>
+    <dl class="cert" id="cert"></dl>
+    <div class="split" id="split"></div>
+    <div class="actions">
+      <button class="btn pri" id="again">Nowy zestaw pytań</button>
+    </div>
+    <h3 class="sec" id="revTitle">Do powtórki</h3>
+    <div id="review"></div>
+    <button class="tog" id="showAll">Pokaż wszystkie odpowiedzi</button>
+  </section>
+
+  <div class="foot">Quiz do zajęć · mgr Wiktor Deredas</div>
+</div>
+
+<script>
+/* Pula pytań. d: 'K' = Kadry filmowe i kompozycja, 'C' = Obsługa kamer.
+   a[0] to zawsze poprawna odpowiedź (kolejność losowana w quizie). img: ilustracja SVG. */
+const POOL = [
+/* ===== KADRY FILMOWE I KOMPOZYCJA ===== */
+{ d:'K', t:'Kadr', q:'Czym jest kadr filmowy?',
+  a:['Pojedynczym ujęciem ograniczonym ramami kamery, które widz widzi na ekranie','Całą sceną od wejścia do wyjścia bohatera','Planem zdjęciowym wraz z całą ekipą','Pojedynczą linijką dialogu w scenariuszu'],
+  e:'Kadr to podstawowa jednostka filmowej narracji: to, co mieści się w ramie kamery i co widz widzi na ekranie.' },
+{ d:'K', t:'Kadr', q:'Co przede wszystkim decyduje kadr?',
+  a:['Co widz zobaczy, a co zostanie wykluczone z pola widzenia','Jak głośno będzie słychać dialogi','Ile klatek na sekundę nagrywa kamera','Jaki będzie format pliku wideo'],
+  e:'Kadr kieruje uwagą widza: pokazuje jedno i świadomie pomija inne. Tak twórca buduje nastrój i historię.' },
+{ d:'K', t:'Trójpodział', q:'Na ile równych części dzieli kadr zasada trójpodziału?',
+  a:['Na 9 części','Na 3 części','Na 4 części','Na 6 części'],
+  e:'Dwie linie poziome i dwie pionowe dzielą kadr na dziewięć równych części.' },
+{ d:'K', t:'Trójpodział', q:'Jak nazywamy zaznaczone na rysunku miejsca przecięcia linii trójpodziału?', img:'thirds',
+  a:['Punkty mocne','Punkty zbiegu','Punkty ostrości','Punkty martwe'],
+  e:'Przecięcia linii to punkty mocne. Ludzkie oko naturalnie podąża za elementami, które się w nich znajdują.' },
+{ d:'K', t:'Trójpodział', q:'Gdzie według zasady trójpodziału najlepiej umieścić najważniejszy element sceny?',
+  a:['W jednym z punktów mocnych','Zawsze dokładnie na środku kadru','Przy samej krawędzi kadru','W lewym dolnym rogu'],
+  e:'Element w punkcie mocnym przyciąga uwagę, a kadr wydaje się jednocześnie zrównoważony i ciekawy.' },
+{ d:'K', t:'Złoty podział', q:'Czym złoty podział różni się od trójpodziału?',
+  a:['Opiera się na matematycznej proporcji i jest bardziej złożony, ale idea jest podobna','Każe zawsze umieszczać bohatera na środku kadru','Dotyczy wyłącznie dźwięku w filmie','Stosuje się go tylko w ujęciach nocnych'],
+  e:'Złoty podział (golden ratio) to proporcja uznawana za najbardziej harmonijną. Tak jak w trójpodziale, ważne elementy trafiają w miejsca, które naturalnie przyciągają wzrok.' },
+{ d:'K', t:'Linie wiodące', q:'Które elementy najlepiej pełnią rolę linii wiodących?',
+  a:['Drogi, tory, rzeki, krawędzie budynków','Napisy końcowe i plansze tytułowe','Muzyka i efekty dźwiękowe','Szum i ziarno obrazu'],
+  e:'Linie wiodące to elementy kompozycji, które prowadzą wzrok widza w stronę głównego motywu.' },
+{ d:'K', t:'Linie wiodące', q:'Do czego służą linie wiodące w kadrze?',
+  a:['Kierują wzrok widza w stronę głównego motywu','Pomagają ustawić balans bieli','Zastępują statyw','Wyznaczają granice planu dla ekipy'],
+  e:'Droga, tory czy rzeka zbiegające się w kadrze „prowadzą” oko do tego, co najważniejsze.' },
+{ d:'K', t:'Plany filmowe', q:'Jaki to plan?', img:'plan:far',
+  a:['Kadr daleki (establishing shot)','Kadr pełny','Plan amerykański','Półzbliżenie'],
+  e:'Kadr daleki pokazuje szeroką przestrzeń, a postać jest w nim mała. Wprowadza widza w miejsce, czas i sytuację.' },
+{ d:'K', t:'Plany filmowe', q:'Jaki to plan?', img:'plan:full',
+  a:['Kadr pełny (full shot)','Kadr daleki','Kadr średni','Plan amerykański'],
+  e:'Kadr pełny pokazuje całą postać od stóp do głów, razem z jej ruchem i otoczeniem.' },
+{ d:'K', t:'Plany filmowe', q:'Jaki to plan?', img:'plan:american',
+  a:['Plan amerykański','Kadr średni','Kadr pełny','Półzbliżenie'],
+  e:'Plan amerykański kadruje postać od kolan w górę.' },
+{ d:'K', t:'Plany filmowe', q:'Jaki to plan?', img:'plan:medium',
+  a:['Kadr średni (medium shot)','Plan amerykański','Półzbliżenie','Kadr detalu'],
+  e:'Kadr średni pokazuje postać mniej więcej od pasa w górę. To typowe ujęcie do dialogów.' },
+{ d:'K', t:'Plany filmowe', q:'Jaki to plan?', img:'plan:mcu',
+  a:['Półzbliżenie (medium close-up)','Kadr średni','Kadr detalu','Plan amerykański'],
+  e:'Półzbliżenie obejmuje postać od klatki piersiowej w górę i skupia się na twarzy.' },
+{ d:'K', t:'Plany filmowe', q:'Skąd pochodzi nazwa „plan amerykański”?',
+  a:['Z klasycznych westernów — kadr od kolan pokazywał bohatera z rewolwerem przy biodrze','Od pierwszej amerykańskiej kamery telewizyjnej','Od formatu ekranu używanego w USA','Od amerykańskiej zasady trójpodziału'],
+  e:'W westernach kadr od kolan w górę pokazywał zarówno twarz bohatera, jak i broń przy biodrze, np. w scenach pojedynków.' },
+{ d:'K', t:'Plany filmowe', q:'Od jakiego miejsca w górę kadruje postać kadr średni?',
+  a:['Mniej więcej od pasa','Od stóp','Od kolan','Od klatki piersiowej'],
+  e:'Kadr średni to postać mniej więcej od pasa w górę: widać gesty, wyraz twarzy i trochę otoczenia.' },
+{ d:'K', t:'Plany filmowe', q:'Chcesz na początku filmu pokazać, gdzie i kiedy dzieje się akcja (np. panorama miasta). Jaki plan wybierzesz?',
+  a:['Kadr daleki (establishing shot)','Kadr detalu','Półzbliżenie','Kadr średni'],
+  e:'Establishing shot wprowadza widza w kontekst miejsca, czasu i sytuacji.' },
+{ d:'K', t:'Plany filmowe', q:'Chcesz podkreślić kluczowy przedmiot, np. drżącą dłoń z kluczem. Jaki plan wybierzesz?',
+  a:['Kadr detalu (extreme close-up)','Kadr pełny','Plan amerykański','Kadr daleki'],
+  e:'Detal pokazuje mały, ale ważny fragment: oko, dłoń, przedmiot. Podkreśla emocję lub symbol.' },
+{ d:'K', t:'Plany filmowe', q:'Który zestaw planów jest ułożony od najszerszego do najbliższego?',
+  a:['Daleki → pełny → amerykański → średni → półzbliżenie → detal','Detal → półzbliżenie → średni → amerykański → pełny → daleki','Pełny → daleki → średni → amerykański → detal → półzbliżenie','Amerykański → daleki → pełny → detal → średni → półzbliżenie'],
+  e:'Każdy kolejny plan pokazuje mniej otoczenia i mniejszy fragment postaci.' },
+{ d:'K', t:'Plany filmowe', q:'Który plan najlepiej sprawdzi się w rozmowie, gdy chcesz pokazać emocje na twarzy i poczucie obecności w rozmowie?',
+  a:['Półzbliżenie','Kadr daleki','Kadr pełny','Plan amerykański'],
+  e:'Półzbliżenie (od klatki piersiowej) koncentruje się na twarzy i emocjach, a widz czuje się uczestnikiem rozmowy.' },
+{ d:'K', t:'Kompozycja', q:'Jaki nastrój zwykle buduje kompozycja symetryczna?',
+  a:['Harmonię, porządek, kontrolę, spokój','Chaos i niepokój','Napięcie i niepewność','Humor i lekkość'],
+  e:'Elementy rozłożone równo po obu stronach osi dają poczucie równowagi i formalnego spokoju.' },
+{ d:'K', t:'Kompozycja', q:'Co najczęściej wyraża kompozycja asymetryczna?',
+  a:['Napięcie, dynamikę, niepokój, brak harmonii','Perfekcję i pełną kontrolę','Spokojny, formalny nastrój','Zawsze radość bohatera'],
+  e:'Widz naturalnie szuka równowagi. Gdy jej brakuje, czuje się mniej komfortowo — kadr staje się bardziej dynamiczny.' },
+{ d:'K', t:'Linia wzroku', q:'Postać patrzy na coś poza kadrem. Co zwykle widzimy w następnym ujęciu?',
+  a:['Obiekt, na który patrzy postać','Tę samą postać z drugiej strony','Napisy końcowe','Plan daleki miasta'],
+  e:'Ciągłość linii wzroku (eyeline) łączy postać z tym, co ją zajmuje, i buduje relacje w przestrzeni.' },
+{ d:'K', t:'Linia wzroku', q:'Czym jest linia wzroku (eyeline)?',
+  a:['Kierunkiem, w którym patrzy postać','Linią horyzontu w kadrze','Linią łączącą dwa punkty mocne','Wysokością, na której stoi kamera'],
+  e:'Linia wzroku wskazuje widzowi, na co bohater zwraca uwagę i co jest ważne w danej chwili.' },
+{ d:'K', t:'POV', q:'Co daje ujęcie POV (point of view)?',
+  a:['Widz widzi świat oczami postaci, co zwiększa identyfikację z bohaterem i napięcie','Pokazuje scenę z lotu ptaka','Zawsze pokazuje całą scenę z boku, jak obserwator','Pozwala nagrywać bez operatora'],
+  e:'POV to perspektywa konkretnej postaci. Widz „wchodzi” w jej rolę.' },
+{ d:'K', t:'Storyboard', q:'Czym jest storyboard (scenorys)?',
+  a:['Sekwencją szkiców kluczowych ujęć, służącą do planowania narracji','Listą ekipy i sprzętu','Tekstem dialogów bez opisów','Montażem gotowego filmu'],
+  e:'Scenorys pozwala zobaczyć film przed nagraniem i zaplanować każde ujęcie.' },
+{ d:'K', t:'Storyboard', q:'Co zwykle zawiera pojedynczy kadr storyboardu oprócz rysunku?',
+  a:['Krótki opis akcji, dialogi i wskazówki techniczne (np. kąt kamery, ruch postaci)','Kosztorys całej produkcji','Wyłącznie numer strony','Ustawienia ISO i przysłony dla każdej klatki'],
+  e:'Podpis pod szkicem mówi, co się dzieje i jak to nagrać.' },
+
+/* ===== OBSŁUGA KAMER (bez rodzajów kamer) ===== */
+{ d:'C', t:'Ostrość', q:'Kiedy manualne ustawianie ostrości jest szczególnie ważne?',
+  a:['Przy bliskich planach i małej głębi ostrości','Tylko przy nagrywaniu w pełnym słońcu','Gdy nagrywamy w 4K','Nigdy — automatyka zawsze jest lepsza'],
+  e:'Przy małej głębi ostrości nawet niewielkie przesunięcie powoduje nieostry obraz, dlatego operator ustawia ostrość ręcznie.' },
+{ d:'C', t:'Zoom', q:'Czym różni się zoom optyczny od cyfrowego?',
+  a:['Optyczny zmienia ogniskową bez utraty jakości; cyfrowy przycina kadr i rozciąga piksele','Cyfrowy daje lepszą jakość, bo pracuje procesor','Optyczny działa tylko w nocy','Nie ma żadnej różnicy w jakości'],
+  e:'Zoom cyfrowy to w praktyce powiększenie wycinka obrazu — traci się rozdzielczość i ostrość.' },
+{ d:'C', t:'Zoom', q:'Nagłe, szybkie zbliżenia zoomem mogą…',
+  a:['Dezorientować widza','Zawsze poprawiać ostrość','Zmniejszać szum','Zwiększać rozdzielczość obrazu'],
+  e:'Zoom stosuje się z rozwagą. Płynne przybliżenie buduje napięcie, a gwałtowne potrafi zdezorientować.' },
+{ d:'C', t:'Zoom', q:'Do czego zwykle używamy zoomu out (oddalenia)?',
+  a:['Żeby pokazać kontekst i szerszy plan','Żeby podkreślić detal twarzy','Żeby rozjaśnić obraz','Żeby zamrozić ruch'],
+  e:'Zoom in skupia uwagę na detalu, zoom out odsłania otoczenie.' },
+{ d:'C', t:'Tryby pracy', q:'W jakiej sytuacji tryb automatyczny kamery sprawdza się najlepiej?',
+  a:['W reportażu i relacji na żywo, gdy warunki szybko się zmieniają','W filmie fabularnym z dokładnie ustawionym światłem','Przy ujęciach z bardzo małą głębią ostrości','Zawsze, gdy chcemy pełnej kontroli nad obrazem'],
+  e:'Automatyka pozwala skupić się na akcji, gdy nie ma czasu na ręczne ustawienia.' },
+{ d:'C', t:'Tryby pracy', q:'Kiedy wybierzesz tryb manualny?',
+  a:['Gdy liczy się pełna kontrola nad wyglądem obrazu, np. w studiu, fabule lub na koncercie ze zmiennym światłem','Tylko gdy kamera ma rozładowaną baterię','Wyłącznie przy nagrywaniu telefonem','Gdy nie znamy ustawień kamery'],
+  e:'W trybie manualnym operator sam decyduje o ostrości, ekspozycji, balansie bieli i migawce.' },
+{ d:'C', t:'Stabilizacja', q:'Co zapewnia głowica olejowa statywu?',
+  a:['Płynne panoramowanie i tiltowanie','Automatyczną ostrość','Mniejszy szum obrazu','Stabilizację w trzech osiach podczas biegu'],
+  e:'Głowica olejowa stawia równomierny opór, dzięki czemu ruchy kamery są gładkie.' },
+{ d:'C', t:'Stabilizacja', q:'Do jakiego ruchu służy wózek kamerowy (dolly)?',
+  a:['Do jazdy kamerowej — płynnego ruchu do przodu, do tyłu lub na boki','Do ujęć z lotu ptaka','Do noszenia kamery przez operatora w biegu','Do szybkiej zmiany ogniskowej'],
+  e:'Dolly to platforma na kołach. Pozwala płynnie przemieszczać kamerę wzdłuż planu.' },
+{ d:'C', t:'Stabilizacja', q:'Które narzędzie operator nosi na sobie, żeby płynnie filmować w biegu?',
+  a:['Steadicam','Statyw','Ramię kamerowe (crane)','Wózek (dolly)'],
+  e:'Steadicam eliminuje drgania wywołane ruchem operatora — nawet podczas chodzenia i biegania.' },
+{ d:'C', t:'Stabilizacja', q:'Czym jest gimbal?',
+  a:['Elektronicznym stabilizatorem, który utrzymuje kamerę w trzech osiach','Rodzajem obiektywu szerokokątnego','Filtrem przyciemniającym obraz','Mechanicznym wózkiem na szynach'],
+  e:'Gimbal silnikami koryguje ruchy w trzech osiach. Sprawdza się przy lżejszych kamerach.' },
+{ d:'C', t:'Stabilizacja', q:'Które narzędzie da spektakularne ujęcie z wysokości, np. nad publicznością koncertu?',
+  a:['Ramię kamerowe (crane)','Statyw','Gimbal ręczny','Zoom cyfrowy'],
+  e:'Crane ma duży zakres ruchu w pionie i poziomie i daje wrażenie lotu nad planem.' },
+{ d:'C', t:'ISO', q:'Od czego pochodzi skrót ISO?',
+  a:['International Organization for Standardization','Image Sensor Output','Internal Shutter Option','International Sound Office'],
+  e:'To międzynarodowa organizacja normalizacyjna. Norma określa czułość w kamerach i aparatach.' },
+{ d:'C', t:'ISO', q:'Co pojawia się w obrazie przy zbyt wysokim ISO?',
+  a:['Szumy (ziarnistość) i mniej szczegółów','Rozmycie tła','Pasy migotania','Zniekształcenie kolorów tylko na krawędziach'],
+  e:'Wysokie ISO rozjaśnia obraz kosztem jakości: widoczne szumy i mniejsza szczegółowość.' },
+{ d:'C', t:'ISO', q:'Obraz jest za ciemny. Co zrobić najpierw, zgodnie z zasadą z zajęć?',
+  a:['Dodać światła (lampa) lub otworzyć przysłonę — ISO podnieść dopiero w ostateczności','Od razu ustawić ISO 12800','Skrócić czas migawki','Włączyć zoom cyfrowy'],
+  e:'Zawsze wybieraj najniższe ISO, które daje poprawną ekspozycję.' },
+{ d:'C', t:'ISO', q:'Co naprawdę robi zwiększenie ISO?',
+  a:['Wzmacnia sygnał z matrycy — na matrycę nie trafia więcej światła','Otwiera szerzej przysłonę','Wydłuża czas migawki','Zwiększa liczbę pikseli'],
+  e:'ISO to wzmocnienie. Wzmacnia się obraz razem z szumem, dlatego wysokie ISO daje ziarno.' },
+{ d:'C', t:'ISO', q:'Przy jakim zakresie ISO obraz jest czysty, ale potrzeba dużo światła (studio, dzień)?',
+  a:['ISO 100–400','ISO 800–1600','ISO 3200 i więcej','ISO 25 600 i więcej'],
+  e:'Niskie ISO daje najczystszy obraz, ale wymaga dobrego oświetlenia.' },
+{ d:'C', t:'Przysłona', q:'Która przysłona ma największy otwór i wpuszcza najwięcej światła?',
+  a:['f/1.4','f/5.6','f/11','f/22'],
+  e:'Im mniejsza liczba f, tym większy otwór przysłony i jaśniejszy obraz.' },
+{ d:'C', t:'Przysłona', q:'Chcesz mocno rozmyć tło za postacią. Jaką przysłonę wybierzesz?',
+  a:['f/1.8','f/8','f/16','f/22'],
+  e:'Szeroko otwarta przysłona (mała liczba f) daje małą głębię ostrości — tło się rozmywa.' },
+{ d:'C', t:'Przysłona', q:'Na co oprócz jasności wpływa przysłona?',
+  a:['Na głębię ostrości','Na liczbę klatek na sekundę','Na rozdzielczość nagrania','Na balans bieli'],
+  e:'Przysłona reguluje ilość światła i głębię ostrości: przymknięta (np. f/11) — więcej ostrych planów.' },
+{ d:'C', t:'Migawka', q:'Co określa czas naświetlania (migawka)?',
+  a:['Jak długo matryca jest wystawiona na światło w każdej klatce','Ile pikseli ma obraz','Jak szeroko otwarta jest przysłona','Jak mocno wzmacniany jest sygnał'],
+  e:'Krótki czas = mniej światła, długi czas = więcej światła. Podaje się go w ułamkach sekundy, np. 1/50.' },
+{ d:'C', t:'Migawka', q:'Chcesz „zamrozić” szybko poruszającego się sportowca. Jaki czas naświetlania wybierzesz?',
+  a:['1/500 s','1/30 s','1/25 s','1/15 s'],
+  e:'Krótki czas zamraża ruch. Pamiętaj, że wpuszcza mniej światła.' },
+{ d:'C', t:'Migawka', q:'Jak zmieni się obraz po wydłużeniu czasu z 1/500 s na 1/30 s?',
+  a:['Będzie jaśniejszy, a ruch bardziej rozmyty','Będzie ciemniejszy i ostrzejszy','Zmieni się tylko głębia ostrości','Nic się nie zmieni'],
+  e:'Dłuższe naświetlanie zbiera więcej światła, ale ruch w kadrze zostawia smugi.' },
+{ d:'C', t:'Zasada 180°', q:'Jaki czas migawki da zasada 180° przy 25 FPS?',
+  a:['1/50 s','1/25 s','1/100 s','1/180 s'],
+  e:'Czas migawki ≈ 1 / (2 × FPS) = 1/50 s — standard telewizji w Europie.' },
+{ d:'C', t:'Zasada 180°', q:'Nagrywasz w 50 FPS i chcesz zachować zasadę 180°. Jaki czas migawki ustawisz?',
+  a:['1/100 s','1/50 s','1/25 s','1/500 s'],
+  e:'1 / (2 × 50) = 1/100 s.' },
+{ d:'C', t:'Zasada 180°', q:'Dlaczego stosuje się zasadę 180°?',
+  a:['Daje naturalne rozmycie ruchu, do którego widzowie są przyzwyczajeni z kina i TV','Bo kamera nie pozwala na inne ustawienia','Żeby uzyskać maksymalnie ostre klatki','Żeby zmniejszyć rozmiar pliku'],
+  e:'Ruch wygląda płynnie i naturalnie. To zasada, nie prawo — można ją świadomie łamać dla efektu.' },
+{ d:'C', t:'Kąt migawki', q:'Co oznacza kąt migawki 180°?',
+  a:['Migawka jest otwarta przez połowę czasu każdej klatki','Kamera obraca się o pół obrotu','Migawka jest otwarta przez całą klatkę','Obraz jest obrócony do góry nogami'],
+  e:'Kąt mówi, jaką część czasu klatki migawka jest otwarta: 360° = cała klatka, 180° = połowa.' },
+{ d:'C', t:'Kąt migawki', q:'Ile wynosi czas migawki przy kącie 360° i 25 FPS?',
+  a:['1/25 s','1/50 s','1/360 s','1/100 s'],
+  e:'Migawka otwarta przez całą klatkę: (360° ÷ 360°) × 1/25 s = 1/25 s.' },
+{ d:'C', t:'Kąt migawki', q:'Jak wygląda ruch przy bardzo małym kącie migawki (np. 45° przy 25 FPS)?',
+  a:['Szarpany, stroboskopowy — ostre, „zamrożone” fazy ruchu','Bardzo rozmyty i senny','Dokładnie jak przy 180°','Obraz staje się czarno-biały'],
+  e:'Mało rozmycia w każdej klatce daje „nerwowy” ruch, stosowany np. w scenach akcji.' },
+{ d:'C', t:'Kąt migawki', q:'Jaka jest zaleta podawania migawki jako kąta?',
+  a:['Po zmianie FPS kąt zostaje ten sam, więc wygląd ruchu się nie zmienia','Kąt nie wpływa na ekspozycję','Kąt pozwala ominąć ograniczenie czasu klatki','Kąt automatycznie ustawia ostrość'],
+  e:'Czas w sekundach trzeba by przeliczać przy każdej zmianie FPS. Kąt opisuje charakter ruchu bezpośrednio.' },
+{ d:'C', t:'Zasada 180°', q:'Zwiększasz FPS z 25 do 50 i trzymasz się zasady 180°. Co dzieje się z ilością światła?',
+  a:['Spada o połowę (−1 EV), bo czas migawki jest dwa razy krótszy','Rośnie dwukrotnie','Nie zmienia się','Spada czterokrotnie'],
+  e:'Dwa razy więcej klatek = dwa razy krótszy czas = połowa światła.' },
+{ d:'C', t:'Migotanie', q:'Lampy w Polsce (prąd 50 Hz) migoczą. Który czas migawki może dać pływające pasy na obrazie?',
+  a:['1/60 s','1/50 s','1/100 s','Żaden — migotanie nie wpływa na obraz'],
+  e:'Lampy migoczą 100 razy na sekundę. Czasy 1/50 i 1/100 s „pasują” do tego rytmu, 1/60 s nie.' },
+{ d:'C', t:'Filtr ND', q:'Co robi filtr ND?',
+  a:['Zatrzymuje część światła równomiernie, bez zmiany kolorów','Zwiększa głębię ostrości','Usuwa szum z obrazu','Zmienia balans bieli na ciepły'],
+  e:'ND (Neutral Density) to „okulary przeciwsłoneczne” obiektywu. Zmienia tylko ilość światła.' },
+{ d:'C', t:'Filtr ND', q:'Słoneczny dzień: chcesz rozmyte tło (f/2) i migawkę 180°, ISO jest już najniższe, a obraz jest prześwietlony. Co robisz?',
+  a:['Zakładasz filtr ND','Przymykasz przysłonę do f/16','Skracasz migawkę do 1/1000 s','Podnosisz ISO'],
+  e:'Tylko filtr ND zabierze nadmiar światła bez zmiany wyglądu obrazu (głębi ostrości i ruchu).' },
+{ d:'C', t:'Filtr ND', q:'O ile EV przyciemnia obraz filtr ND 0.9?',
+  a:['O 3 EV (przepuszcza 12,5% światła)','O 0,9 EV','O 9 EV','O 1 EV'],
+  e:'Każde 0,3 gęstości to 1 EV, czyli połowa światła. 0,9 = 3 EV.' },
+{ d:'C', t:'Filtr ND', q:'Czego filtr ND NIE zmienia?',
+  a:['Głębi ostrości i rozmycia ruchu','Ilości światła na matrycy','Jasności obrazu','Ekspozycji'],
+  e:'Filtr działa tylko na ilość światła. Przysłona i migawka — a więc wygląd obrazu — zostają takie, jakie wybrałeś.' },
+{ d:'C', t:'Matryca', q:'Obiektyw 50 mm na matrycy z mnożnikiem (crop factor) 2 daje kadr taki jak…',
+  a:['100 mm na pełnej klatce','25 mm na pełnej klatce','50 mm na pełnej klatce','200 mm na pełnej klatce'],
+  e:'Mniejsza matryca „widzi” węższy wycinek sceny: ogniskową mnożymy przez crop factor.' },
+{ d:'C', t:'Matryca', q:'Ten sam kadr, ta sama przysłona: jak mniejsza matryca wpływa na głębię ostrości?',
+  a:['Głębia ostrości jest większa — trudniej rozmyć tło','Głębia ostrości jest mniejsza','Nie ma wpływu','Obraz zawsze jest nieostry'],
+  e:'Mniejsza matryca potrzebuje krótszej ogniskowej do tego samego kadru, a to zwiększa głębię ostrości.' },
+{ d:'C', t:'Matryca', q:'Dlaczego klasyczne kamery telewizyjne mają małe matryce 2/3″?',
+  a:['Duża głębia ostrości ułatwia ostrość na żywo, a umożliwia obiektywy z dużym zoomem','Bo małe matryce w ogóle nie szumią','Bo dają płytszą głębię ostrości niż kino','Bo mają więcej pikseli'],
+  e:'W transmisjach liczy się pewna ostrość i obiektywy z zoomem ×20–×100. Kino wybiera duże matryce dla płytkiej głębi.' },
+{ d:'C', t:'Matryca', q:'Czy wielkość matrycy to to samo co rozdzielczość?',
+  a:['Nie — wielkość to fizyczny rozmiar, rozdzielczość to liczba pikseli','Tak, to dwa słowa na to samo','Tak, ale tylko w kamerach 4K','Nie — rozdzielczość to rozmiar w milimetrach'],
+  e:'Matryca może być duża i mieć mało pikseli albo małą i mieć ich dużo. To dwie różne cechy.' },
+{ d:'C', t:'Matryca', q:'Która matryca zwykle daje mniej szumu przy wysokim ISO?',
+  a:['Większa (np. pełna klatka)','Mniejsza (np. 1/2,3″)','Wielkość matrycy nie ma znaczenia','Ta z mniejszą liczbą klatek na sekundę'],
+  e:'Większa matryca zbiera więcej światła z całego kadru, więc zwykle mniej szumi.' },
+{ d:'C', t:'Rozdzielczość', q:'Ile pikseli ma obraz Full HD?',
+  a:['1920 × 1080','1280 × 720','3840 × 2160','7680 × 4320'],
+  e:'Full HD to najpopularniejszy format w telewizji i internecie.' },
+{ d:'C', t:'Rozdzielczość', q:'Jaka rozdzielczość to 4K (UHD)?',
+  a:['3840 × 2160','1920 × 1080','7680 × 4320','4000 × 1000'],
+  e:'4K ma cztery razy więcej pikseli niż Full HD.' },
+{ d:'C', t:'Rozdzielczość', q:'Co jest kosztem wyższej rozdzielczości?',
+  a:['Większe pliki i większe wymagania sprzętowe','Mniejsza głębia ostrości','Krótszy czas migawki','Więcej szumu w każdym przypadku'],
+  e:'Więcej pikseli to więcej szczegółów, ale też więcej danych do zapisania i obróbki.' },
+];
+
+const N_Q = 15, N_K = 6;               // 6 pytań z kadrów, 9 z obsługi kamer
+const $ = s => document.querySelector(s);
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* ---------- ilustracje ---------- */
+function planSvg(kind) {
+  // postać w układzie: czubek głowy y=0, stopy y=100; kadr = viewBox 16:9
+  const crop = { full: [-6, 104], american: [-4, 70], medium: [-4, 44], mcu: [-3, 27] }[kind];
+  const person = `
+    <g fill="#c98f6c"><ellipse cx="0" cy="7" rx="5.4" ry="6.8"/><rect x="-2" y="12" width="4" height="4"/></g>
+    <path d="M-2 15 C-8 15 -11 17 -12 22 L-13 47 L-10 47 L-9 25 L-8.5 42 L8.5 42 L9 25 L10 47 L13 47 L12 22 C11 17 8 15 2 15 Z" fill="#4f6f99"/>
+    <path d="M-3 15 L0 21 L3 15 Z" fill="#e8ecf2"/>
+    <path d="M-8.5 42 L-8 72 L-6.5 98 L-1.5 98 L-0.8 60 L0.8 60 L1.5 98 L6.5 98 L8 72 L8.5 42 Z" fill="#2c3443"/>
+    <ellipse cx="-4.2" cy="99.5" rx="4" ry="1.6" fill="#15181d"/><ellipse cx="4.2" cy="99.5" rx="4" ry="1.6" fill="#15181d"/>
+    <g fill="#c98f6c"><circle cx="-11.5" cy="48.5" r="1.8"/><circle cx="11.5" cy="48.5" r="1.8"/></g>
+    <path d="M-5.6 3 C-5 -2 5 -2 5.6 3 L5.4 6 C4 1 -4 1 -5.4 6 Z" fill="#3b2516"/>
+    <g fill="#1d1410"><circle cx="-2" cy="7" r=".6"/><circle cx="2" cy="7" r=".6"/></g>`;
+  let vb, scene;
+  if (kind === 'far') {
+    vb = [-160, -110, 320, 180];
+    scene = `<rect x="-160" y="-110" width="320" height="180" fill="url(#sky)"/>
+      <path d="M-160 20 L-110 -30 L-70 5 L-20 -45 L30 0 L80 -35 L160 15 L160 70 L-160 70Z" fill="#5d7aa0" opacity=".75"/>
+      <path d="M-160 40 Q0 25 160 42 L160 70 L-160 70Z" fill="#4c7a3c"/><rect x="-160" y="62" width="320" height="8" fill="#3f6631"/>
+      <g transform="translate(40,40) scale(.24)">${person}</g>`;
+  } else {
+    const [y0, y1] = crop, h = y1 - y0, w = h * 16 / 9;
+    vb = [-w / 2, y0, w, h];
+    scene = `<rect x="${-w / 2}" y="${y0}" width="${w}" height="${h}" fill="url(#sky)"/>
+      <rect x="${-w / 2}" y="78" width="${w}" height="40" fill="#4c7a3c"/>
+      <path d="M${-w / 2} 78 L${-w * .3} 50 L${-w * .12} 70 L${w * .1} 40 L${w * .35} 66 L${w / 2} 55 L${w / 2} 78Z" fill="#6d88ad" opacity=".7"/>${person}`;
+  }
+  return `<svg viewBox="${vb.join(' ')}" role="img" aria-label="Kadr z postacią"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fb6e2"/><stop offset="1" stop-color="#d7e7f5"/></linearGradient></defs>${scene}</svg>`;
+}
+function thirdsSvg() {
+  const g = [1, 2].map(i => `<line x1="${i * 160 / 3}" y1="0" x2="${i * 160 / 3}" y2="90" stroke="#fff" stroke-width=".8" stroke-dasharray="3 2"/><line x1="0" y1="${i * 30}" x2="160" y2="${i * 30}" stroke="#fff" stroke-width=".8" stroke-dasharray="3 2"/>`).join('');
+  const pts = [[1, 1], [2, 1], [1, 2], [2, 2]].map(([a, b]) => `<circle cx="${a * 160 / 3}" cy="${b * 30}" r="3.4" fill="#f5a524" stroke="#1a1204" stroke-width="1"/>`).join('');
+  return `<svg viewBox="0 0 160 90" role="img" aria-label="Kadr z siatką trójpodziału i czterema zaznaczonymi punktami">
+    <defs><linearGradient id="s2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3b97a"/><stop offset=".6" stop-color="#e98a6a"/><stop offset="1" stop-color="#7a5a7a"/></linearGradient></defs>
+    <rect width="160" height="90" fill="url(#s2)"/><circle cx="106.7" cy="30" r="9" fill="#fff3c9" opacity=".95"/>
+    <path d="M0 62 L30 50 L60 58 L95 46 L130 56 L160 50 L160 90 L0 90Z" fill="#3e3550"/>${g}${pts}</svg>`;
+}
+const figure = img => img === 'thirds' ? thirdsSvg() : planSvg(img.split(':')[1]);
+
+/* ---------- logika ---------- */
+let set = [], idx = 0, answers = [];
+function draw() {
+  const k = shuffle(POOL.filter(q => q.d === 'K')), c = shuffle(POOL.filter(q => q.d === 'C'));
+  const pick = [], used = {};
+  const take = (src, n) => { for (const q of src) { if (pick.filter(p => src.includes(p)).length >= n) break;
+    const isImg = !!(q.img && q.img.startsWith('plan'));
+    if ((used[q.t] || 0) >= 3 || (isImg && (used.img || 0) >= 2)) continue;
+    used[q.t] = (used[q.t] || 0) + 1; if (isImg) used.img = (used.img || 0) + 1; pick.push(q); } };
+  take(k, N_K); take(c, N_Q - N_K);
+  return shuffle(pick).map(q => ({ q, opts: shuffle(q.a.map((t, i) => ({ t, ok: i === 0 }))) }));
+}
+function show(id) { ['#s-start', '#s-q', '#s-res'].forEach(s => $(s).hidden = s !== id); window.scrollTo(0, 0); }
+function start() {
+  try { localStorage.setItem('kadrq.name', $('#name').value.trim()); } catch (e) {}
+  set = draw(); idx = 0; answers = []; t0 = Date.now(); render(); show('#s-q');
+}
+let t0 = 0;
+function render() {
+  const it = set[idx], q = it.q;
+  $('#qcount').innerHTML = `Pytanie <b>${idx + 1}</b> / ${set.length}`;
+  $('#qpts').textContent = `${answers.filter(a => a.ok).length} pkt`;
+  $('#bar').innerHTML = set.map((_, i) => `<i class="${i < answers.length ? (answers[i].ok ? 'ok' : 'no') : i === idx ? 'cur' : ''}"></i>`).join('');
+  $('#qtopic').textContent = (q.d === 'K' ? 'Kadr · ' : 'Kamera · ') + q.t;
+  $('#qtext').textContent = q.q;
+  $('#qfig').hidden = !q.img; $('#qfig').innerHTML = q.img ? figure(q.img) : '';
+  $('#opts').innerHTML = it.opts.map((o, i) => `<button class="opt" data-i="${i}"><span class="k">${'ABCD'[i]}</span><span>${esc(o.t)}</span></button>`).join('');
+  $('#fb').hidden = true; $('#next').hidden = true;
+}
+function choose(i) {
+  const it = set[idx]; if (answers.length > idx) return;
+  const o = it.opts[i]; answers.push({ ok: o.ok, pick: o.t });
+  document.querySelectorAll('.opt').forEach((b, j) => { b.disabled = true; const oj = it.opts[j];
+    if (oj.ok) b.classList.add('ok'); else if (j === i) b.classList.add('no'); else b.classList.add('dim'); });
+  const fb = $('#fb'); fb.hidden = false; fb.className = 'fb ' + (o.ok ? 'ok' : 'no');
+  fb.innerHTML = `<b>${o.ok ? 'Dobrze!' : 'Niestety nie.'}</b>${o.ok ? '' : 'Poprawna odpowiedź: ' + esc(it.q.a[0]) + '. '}${esc(it.q.e)}`;
+  $('#qpts').textContent = `${answers.filter(a => a.ok).length} pkt`;
+  $('#bar').children[idx].className = o.ok ? 'ok' : 'no';
+  const nx = $('#next'); nx.hidden = false; nx.textContent = idx === set.length - 1 ? 'Zobacz wynik' : 'Dalej';
+  nx.focus({ preventScroll: true });
+  setTimeout(() => nx.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
+}
+function next() { if (idx < set.length - 1) { idx++; render(); window.scrollTo(0, 0); } else result(); }
+function result() {
+  const n = answers.filter(a => a.ok).length, N = set.length, pct = Math.round(n / N * 100);
+  $('#rs').textContent = `${n}/${N}`; $('#rp').textContent = `${pct}%`;
+  const col = pct >= 80 ? '#3ddc97' : pct >= 50 ? '#f5a524' : '#ff6b6b';
+  const arc = $('#arc'); arc.setAttribute('stroke', col); arc.setAttribute('stroke-dasharray', `${2 * Math.PI * 52 * n / N} 400`);
+  const [t, m] = pct >= 90 ? ['Świetnie!', 'Opanowałeś materiał z obu zajęć.'] : pct >= 70 ? ['Bardzo dobrze', 'Przejrzyj kilka pytań poniżej i będzie komplet.'] : pct >= 50 ? ['Nieźle', 'Część tematów warto powtórzyć — wyjaśnienia są poniżej.'] : ['Do powtórki', 'Przeczytaj wyjaśnienia poniżej i spróbuj nowego zestawu.'];
+  $('#rtitle').textContent = t; $('#rmsg').textContent = m;
+  const name = $('#name').value.trim(), d = new Date(), p2 = x => String(x).padStart(2, '0');
+  const secs = Math.round((Date.now() - t0) / 1000);
+  $('#cert').innerHTML = `<dt>Uczestnik</dt><dd>${esc(name || '—')}</dd><dt>Wynik</dt><dd>${n}/${N} (${pct}%)</dd><dt>Data</dt><dd>${p2(d.getDate())}.${p2(d.getMonth() + 1)}.${d.getFullYear()}, ${p2(d.getHours())}:${p2(d.getMinutes())}</dd><dt>Czas</dt><dd>${Math.floor(secs / 60)} min ${secs % 60} s</dd>`;
+  const part = dd => { const ix = set.map((s, i) => i).filter(i => set[i].q.d === dd); return `${ix.filter(i => answers[i].ok).length}/${ix.length}`; };
+  $('#split').innerHTML = `<div><b>${part('K')}</b>Kadry i kompozycja</div><div><b>${part('C')}</b>Obsługa kamer</div>`;
+  renderReview(false);
+  show('#s-res');
+}
+function renderReview(all) {
+  const rows = set.map((s, i) => ({ s, a: answers[i] })).filter(r => all || !r.a.ok);
+  $('#revTitle').textContent = all ? 'Wszystkie odpowiedzi' : rows.length ? `Do powtórki (${rows.length})` : 'Bezbłędnie!';
+  $('#review').innerHTML = rows.map(({ s, a }) => `<div class="rev ${a.ok ? 'ok' : ''}"><div class="rq">${esc(s.q.q)}${s.q.img ? ' <span style="color:var(--muted);font-weight:400">(z ilustracją)</span>' : ''}</div>
+    ${a.ok ? `<div class="rc">✓ ${esc(s.q.a[0])}</div>` : `<div class="ry">✗ Twoja odpowiedź: ${esc(a.pick)}</div><div class="rc">✓ Poprawna: ${esc(s.q.a[0])}</div>`}
+    <div class="re">${esc(s.q.e)}</div></div>`).join('');
+  $('#showAll').textContent = all ? 'Pokaż tylko błędy' : 'Pokaż wszystkie odpowiedzi';
+  $('#showAll').dataset.all = all ? '1' : '';
+}
+$('#poolN').textContent = POOL.length;
+try { $('#name').value = localStorage.getItem('kadrq.name') || ''; } catch (e) {}
+$('#go').onclick = start;
+$('#name').addEventListener('keydown', e => { if (e.key === 'Enter') start(); });
+$('#opts').addEventListener('click', e => { const b = e.target.closest('.opt'); if (b && !b.disabled) choose(+b.dataset.i); });
+$('#next').onclick = next;
+$('#again').onclick = start;
+$('#showAll').onclick = () => renderReview(!$('#showAll').dataset.all);
+</script>
+</body>
+</html>
